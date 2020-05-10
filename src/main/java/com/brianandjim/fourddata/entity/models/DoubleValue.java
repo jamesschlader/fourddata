@@ -10,13 +10,13 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 
 @Entity
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
-@AllArgsConstructor
-@NoArgsConstructor
-public class StringValue extends NodeValue {
+public class DoubleValue extends NodeValue {
 
-    private String value;
+    private Double value;
 
     @ManyToOne
     @JoinColumn(name = "nodeValueSpaceId", nullable = false)

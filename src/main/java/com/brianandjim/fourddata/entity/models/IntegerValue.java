@@ -12,11 +12,11 @@ import javax.persistence.ManyToOne;
 @Entity
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-public class StringValue extends NodeValue {
+@AllArgsConstructor
+public class IntegerValue extends NodeValue {
 
-    private String value;
+    private Integer value;
 
     @ManyToOne
     @JoinColumn(name = "nodeValueSpaceId", nullable = false)

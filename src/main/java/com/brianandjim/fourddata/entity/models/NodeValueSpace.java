@@ -1,5 +1,6 @@
 package com.brianandjim.fourddata.entity.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,6 +15,7 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties("values")
 public class NodeValueSpace {
     @Id
     @GeneratedValue
@@ -26,6 +28,7 @@ public class NodeValueSpace {
     private Long yId;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "worldId", nullable = false)
     private World world;
 
     @OneToMany
