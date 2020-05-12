@@ -13,10 +13,8 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-class NodeValue {
+public class NodeValue {
     @Id
     @GeneratedValue
     private Long nodeValueId;
-    private Timestamp createDate;
-
 }

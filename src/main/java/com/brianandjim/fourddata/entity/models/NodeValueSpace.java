@@ -1,5 +1,6 @@
 package com.brianandjim.fourddata.entity.models;
 
+import com.brianandjim.fourddata.entity.dtos.NodeValueSpaceDTO;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -7,7 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
-import java.sql.Timestamp;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -20,7 +21,6 @@ public class NodeValueSpace {
     @Id
     @GeneratedValue
     private Long nodeSpaceId;
-    private Timestamp createDate;
 
     @Column(nullable = false, unique = true)
     private Long xId;
@@ -33,4 +33,12 @@ public class NodeValueSpace {
 
     @OneToMany
     private Set<NodeValue> values;
+
+    public NodeValueSpace(NodeValueSpaceDTO nodeValueSpaceDTO){
+        this.nodeSpaceId = nodeValueSpaceDTO.getNodeSpaceId();
+        this.xId = nodeValueSpaceDTO.getXId();
+        this.yId = nodeValueSpaceDTO.getYId();
+        this.world = nodeValueSpaceDTO.getWorld();
+        this.values = new HashSet<>(nodeValueSpaceDTO.getValues());
+    }
 }

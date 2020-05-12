@@ -1,5 +1,6 @@
 package com.brianandjim.fourddata.entity.models;
 
+import com.brianandjim.fourddata.entity.dtos.LongValueDTO;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,4 +22,10 @@ public class LongValue extends NodeValue {
     @ManyToOne
     @JoinColumn(name = "nodeValueSpaceId", nullable = false)
     private NodeValueSpace nodeValueSpace;
+
+    public LongValue(LongValueDTO longValueDTO){
+        super(longValueDTO.getNodeValueId());
+        this.value = longValueDTO.getValue();
+        this.nodeValueSpace = longValueDTO.getNodeValueSpace();
+    }
 }

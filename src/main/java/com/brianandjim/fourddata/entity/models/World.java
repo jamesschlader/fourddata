@@ -1,5 +1,6 @@
 package com.brianandjim.fourddata.entity.models;
 
+import com.brianandjim.fourddata.entity.dtos.WorldDTO;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -8,6 +9,7 @@ import lombok.Setter;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -20,7 +22,6 @@ public class World {
     @Id
     @GeneratedValue
     private Long worldId;
-    private Timestamp createDate;
     private String name;
     private String description;
     @ManyToOne
@@ -29,4 +30,11 @@ public class World {
     @OneToMany
     @JoinColumn(name = "nodeValueId")
     private Set<NodeValueSpace> spaces;
+
+    public World(WorldDTO worldDTO){
+        this.worldId = worldDTO.getWorldId();
+        this.description = worldDTO.getDescription();
+        this.universe = worldDTO.getUniverse();
+        this.spaces = new HashSet<>(worldDTO.getSpaces());
+    }
 }
