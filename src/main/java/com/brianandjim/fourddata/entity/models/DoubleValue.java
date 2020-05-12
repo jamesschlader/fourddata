@@ -21,4 +21,8 @@ public class DoubleValue extends NodeValue {
     @ManyToOne
     @JoinColumn(name = "nodeValueSpaceId", nullable = false)
     private NodeValueSpace nodeValueSpace;
+
+    public void setValue(NodeValueSpace x, NodeValueSpace y, char operator){
+
+    }
 }

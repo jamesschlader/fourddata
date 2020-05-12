@@ -3,9 +3,16 @@ spring:
     hibernate:
       ddl-auto: update
   datasource:
-    driverClassName: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/fourddata
-    username: root
-    password: Alex@1386
+    jdbc-url: jdbc:h2:mem:FOURDDATA;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MSSQLServer;INIT=CREATE SCHEMA IF NOT EXISTS DBO\;SET SCHEMA DBO;
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    idle-timeout: 60000
+    maximum-pool-size: 50
+    minimum-idle: 5
+    connection-test-query: SELECT 1
+    validation-timeout: 500
+    register-mbeans: true
+
 server:
   port: 8888
