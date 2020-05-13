@@ -2,6 +2,8 @@ package com.brianandjim.fourddata.entity.models;
 
 import com.brianandjim.fourddata.entity.dtos.UniverseDTO;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.leangen.graphql.annotations.GraphQLId;
+import io.leangen.graphql.annotations.GraphQLQuery;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,11 +22,15 @@ import java.util.Set;
 public class Universe {
     @Id
     @GeneratedValue
+    @GraphQLQuery(name="universeId")
     private Long universeId;
+    @GraphQLQuery(name="name")
     private String name;
+    @GraphQLQuery(name="description")
     private String description;
     @OneToMany
     @JoinColumn(name = "worldId")
+    @GraphQLQuery(name="worlds")
     private Set<World> worlds;
 
     public Universe(UniverseDTO universeDTO) {

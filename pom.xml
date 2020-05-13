@@ -49,6 +49,22 @@
                 </exclusion>
             </exclusions>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.graphql-java</groupId>-->
+<!--            <artifactId>graphql-java</artifactId>-->
+<!--            <version>14.0</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.graphql-java</groupId>-->
+<!--            <artifactId>graphql-java-spring-boot-starter-webmvc</artifactId>-->
+<!--            <version>2019-06-24T11-47-27-31ab4f9</version>-->
+<!--            <type>pom</type>-->
+<!--        </dependency>-->
+        <dependency>
+            <groupId>io.leangen.graphql</groupId>
+            <artifactId>graphql-spqr-spring-boot-starter</artifactId>
+            <version>0.0.4</version>
+        </dependency>
     </dependencies>
 
     <build>
