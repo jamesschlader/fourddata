@@ -27,8 +27,8 @@ public class UniverseService {
         return universeDao.findAll();
     }
 
-    @GraphQLMutation(name="saveUniverse")
-    public Universe saveUniverse(@GraphQLArgument(name="newUniverse")UniverseDTO universeDTO){
-        return universeDao.saveAndFlush(new Universe(universeDTO));
+    @GraphQLQuery(name="universeById")
+    public Universe getOneUniverse(@GraphQLArgument(name="universeId")Long id){
+        return universeDao.getOne(id);
     }
 }
