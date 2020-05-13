@@ -31,11 +31,4 @@ public class UniverseService {
     public Universe getOneUniverse(@GraphQLArgument(name="universeId")Long id){
         return universeDao.getOne(id);
     }
-
-
-
-    @GraphQLMutation(name="saveUniverse")
-    public Universe saveUniverse(@GraphQLArgument(name="newUniverse")UniverseDTO universeDTO){
-        return universeDao.saveAndFlush(new Universe(universeDTO));
-    }
 }
