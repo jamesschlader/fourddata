@@ -1,5 +1,6 @@
 package com.brianandjim.fourddata.entity.models;
 
+import io.leangen.graphql.annotations.GraphQLQuery;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,5 +17,6 @@ import java.sql.Timestamp;
 public class NodeValue {
     @Id
     @GeneratedValue
+    @GraphQLQuery
     private Long nodeValueId;
 }

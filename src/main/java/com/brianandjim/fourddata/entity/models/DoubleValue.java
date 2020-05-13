@@ -1,6 +1,7 @@
 package com.brianandjim.fourddata.entity.models;
 
 import com.brianandjim.fourddata.entity.dtos.DoubleValueDTO;
+import io.leangen.graphql.annotations.GraphQLQuery;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,10 +18,12 @@ import javax.persistence.ManyToOne;
 @Setter
 public class DoubleValue extends NodeValue {
 
+    @GraphQLQuery
     private Double value;
 
     @ManyToOne
     @JoinColumn(name = "nodeValueSpaceId", nullable = false)
+    @GraphQLQuery
     private NodeValueSpace nodeValueSpace;
 
     public DoubleValue(DoubleValueDTO doubleValueDTO){

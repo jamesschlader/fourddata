@@ -2,6 +2,7 @@ package com.brianandjim.fourddata.entity.models;
 
 import com.brianandjim.fourddata.entity.dtos.NodeValueSpaceDTO;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.leangen.graphql.annotations.GraphQLQuery;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,18 +21,23 @@ import java.util.Set;
 public class NodeValueSpace {
     @Id
     @GeneratedValue
+    @GraphQLQuery
     private Long nodeSpaceId;
 
     @Column(nullable = false, unique = true)
+    @GraphQLQuery
     private Long xId;
     @Column(nullable = false, unique = true)
+    @GraphQLQuery
     private Long yId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "worldId", nullable = false)
+    @GraphQLQuery
     private World world;
 
     @OneToMany
+    @GraphQLQuery
     private Set<NodeValue> values;
 
     public NodeValueSpace(NodeValueSpaceDTO nodeValueSpaceDTO){

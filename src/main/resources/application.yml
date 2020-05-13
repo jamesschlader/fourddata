@@ -13,6 +13,9 @@ spring:
     connection-test-query: SELECT 1
     validation-timeout: 500
     register-mbeans: true
+  h2:
+    console:
+      enabled: true
 
 server:
   port: 8888
