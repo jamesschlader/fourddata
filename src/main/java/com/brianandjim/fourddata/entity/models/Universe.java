@@ -28,15 +28,11 @@ public class Universe {
     private String name;
     @GraphQLQuery(name="description")
     private String description;
-    @OneToMany
-    @JoinColumn(name = "worldId")
-    @GraphQLQuery(name="worlds")
-    private Set<World> worlds;
 
     public Universe(UniverseDTO universeDTO) {
         this.universeId = universeDTO.getUniverseId();
         this.name = universeDTO.getName();
         this.description = universeDTO.getDescription();
-        this.worlds = new HashSet<>(universeDTO.getWorlds());
     }
+
 }

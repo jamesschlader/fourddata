@@ -29,18 +29,13 @@ public class World {
     @GraphQLQuery
     private String description;
     @ManyToOne
-    @JoinColumn(name = "universeId")
+    @JoinColumn(name = "universe_id")
     @GraphQLQuery
     private Universe universe;
-    @OneToMany
-    @JoinColumn(name = "nodeValueId")
-    @GraphQLQuery
-    private Set<NodeValueSpace> spaces;
 
     public World(WorldDTO worldDTO){
         this.worldId = worldDTO.getWorldId();
         this.description = worldDTO.getDescription();
         this.universe = worldDTO.getUniverse();
-        this.spaces = new HashSet<>(worldDTO.getSpaces());
     }
 }
