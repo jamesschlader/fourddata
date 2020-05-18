@@ -36,15 +36,10 @@ public class NodeValueSpace {
     @GraphQLQuery
     private World world;
 
-    @OneToMany
-    @GraphQLQuery
-    private Set<NodeValue> values;
-
     public NodeValueSpace(NodeValueSpaceDTO nodeValueSpaceDTO){
         this.nodeSpaceId = nodeValueSpaceDTO.getNodeSpaceId();
         this.xId = nodeValueSpaceDTO.getXId();
         this.yId = nodeValueSpaceDTO.getYId();
         this.world = nodeValueSpaceDTO.getWorld();
-        this.values = new HashSet<>(nodeValueSpaceDTO.getValues());
     }
 }
