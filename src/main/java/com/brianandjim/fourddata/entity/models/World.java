@@ -9,9 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
-import java.sql.Timestamp;
-import java.util.HashSet;
 import java.util.Set;
+
 
 @Entity
 @AllArgsConstructor
@@ -32,6 +31,10 @@ public class World {
     @JoinColumn(name = "universe_id")
     @GraphQLQuery
     private Universe universe;
+
+    @GraphQLQuery(name = "nodes")
+    @OneToMany(mappedBy = "world")
+    private Set<NodeValueSpace> nodes;
 
     public World(WorldDTO worldDTO){
         this.worldId = worldDTO.getWorldId();

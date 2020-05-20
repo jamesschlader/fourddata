@@ -6,12 +6,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
-public class DoubleValueDTO {
+public class NodeValueDTO {
     private Long nodeValueId;
-    private Double value;
     private NodeValueSpace nodeValueSpace;
+    private String value;
 }

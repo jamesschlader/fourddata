@@ -31,10 +31,14 @@ public class NodeValueSpace {
     @GraphQLQuery
     private Long yId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "worldId", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "world_id", nullable = false)
     @GraphQLQuery
     private World world;
+
+    @OneToMany(mappedBy = "nodeValueSpace")
+    @GraphQLQuery(name = "values")
+    private Set<NodeValue> values;
 
     public NodeValueSpace(NodeValueSpaceDTO nodeValueSpaceDTO){
         this.nodeSpaceId = nodeValueSpaceDTO.getNodeSpaceId();
