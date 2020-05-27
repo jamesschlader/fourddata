@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UniverseDao extends JpaRepository<Universe, Long> {
+    Universe findFirstByName(String name);
 }
