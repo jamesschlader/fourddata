@@ -3,7 +3,7 @@ spring:
     hibernate:
       ddl-auto: update
   datasource:
-    jdbc-url: jdbc:h2:mem:FOURDDATA;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MSSQLServer;INIT=CREATE SCHEMA IF NOT EXISTS DBO\;SET SCHEMA DBO;
+    url: jdbc:h2:file:~/fourddata;MODE=MSSQLServer
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -16,7 +16,7 @@ spring:
   h2:
     console:
       enabled: true
-
+      path: /db
 server:
   port: 8888
 

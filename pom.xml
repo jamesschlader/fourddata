@@ -28,6 +28,15 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt</artifactId>
+            <version>0.9.1</version>
+        </dependency>
+        <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>1.4.200</version>
@@ -40,6 +49,11 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+            <version>2.2.1.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
             <exclusions>
@@ -49,17 +63,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.graphql-java</groupId>-->
-<!--            <artifactId>graphql-java</artifactId>-->
-<!--            <version>14.0</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>com.graphql-java</groupId>-->
-<!--            <artifactId>graphql-java-spring-boot-starter-webmvc</artifactId>-->
-<!--            <version>2019-06-24T11-47-27-31ab4f9</version>-->
-<!--            <type>pom</type>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>io.leangen.graphql</groupId>
             <artifactId>graphql-spqr-spring-boot-starter</artifactId>

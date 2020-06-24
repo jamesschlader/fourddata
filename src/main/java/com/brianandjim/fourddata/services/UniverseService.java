@@ -1,4 +1,4 @@
-package com.brianandjim.fourddata.services.universe;
+package com.brianandjim.fourddata.services;
 
 import com.brianandjim.fourddata.entity.dao.UniverseDao;
 import com.brianandjim.fourddata.entity.dao.WorldDao;
@@ -11,6 +11,7 @@ import io.leangen.graphql.annotations.GraphQLMutation;
 import io.leangen.graphql.annotations.GraphQLQuery;
 import io.leangen.graphql.spqr.spring.annotations.GraphQLApi;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.Optional;
 @Service
 @GraphQLApi
 @Slf4j
+@PreAuthorize(value = "hasAnyAuthority('READ_PRIVILEGE')")
 public class UniverseService {
 
     private final UniverseDao universeDao;

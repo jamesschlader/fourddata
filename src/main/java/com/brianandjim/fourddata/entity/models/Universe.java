@@ -1,5 +1,6 @@
 package com.brianandjim.fourddata.entity.models;
 
+import com.brianandjim.fourddata.entity.dao.FourDDataUserDAO;
 import com.brianandjim.fourddata.entity.dtos.UniverseDTO;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.leangen.graphql.annotations.GraphQLMutation;
@@ -32,11 +33,16 @@ public class Universe {
     @GraphQLQuery(name = "worlds")
     @OneToMany(mappedBy = "universe")
     private Set<World> worlds;
+    @GraphQLQuery(name = "user")
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private FourDDUser user;
 
     public Universe(UniverseDTO universeDTO) {
         this.universeId = universeDTO.getUniverseId();
         this.name = universeDTO.getName();
         this.description = universeDTO.getDescription();
         this.worlds = new HashSet<>();
+        this.user = universeDTO.getUser();
     }
 }
