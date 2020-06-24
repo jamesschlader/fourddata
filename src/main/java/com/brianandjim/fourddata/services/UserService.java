@@ -30,7 +30,6 @@ import java.util.Set;
 @Service
 @Slf4j
 @GraphQLApi
-@PreAuthorize(value = "permitAll()")
 public class UserService {
 
     private final FourDDataUserDAO fourDDataUserDAO;
