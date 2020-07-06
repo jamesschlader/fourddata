@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
-import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -24,10 +23,10 @@ public class NodeValueSpace {
     @GraphQLQuery
     private Long nodeSpaceId;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     @GraphQLQuery
     private Long xId;
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     @GraphQLQuery
     private Long yId;
 
@@ -45,5 +44,11 @@ public class NodeValueSpace {
         this.xId = nodeValueSpaceDTO.getXId();
         this.yId = nodeValueSpaceDTO.getYId();
         this.world = nodeValueSpaceDTO.getWorld();
+    }
+
+    public NodeValue getLastValue(){
+        return (NodeValue)this.values.stream()
+                .sorted((nodeValue1, nodeValue2 ) -> nodeValue1.getCreateDate().compareTo(nodeValue2.getCreateDate()))
+                .toArray()[0];
     }
 }

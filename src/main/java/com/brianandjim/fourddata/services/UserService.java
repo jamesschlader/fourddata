@@ -56,20 +56,30 @@ public class UserService {
         } catch (BadCredentialsException e) {
             throw new UsernameNotFoundException("Incorrect username or password");
         }
-        final FourDDataUserPrincipal userDetails = fourDDataUserDetailsService.loadUserByUsername(request.getUsername());
-        FourDDataUserDTO fourDDataUserDTO = new FourDDataUserDTO(userDetails);
-        String jwt = jwtUtil.generateToken(fourDDataUserDTO);
-        return new AuthenticationResponse(jwt);
+        return new AuthenticationResponse(getJwtByUsername(request.getUsername()));
     }
 
-    @GraphQLQuery(name = "signup")
+    @GraphQLMutation(name = "signup")
     @PreAuthorize(value = "permitAll()")
-    public FourDDUser signup(@GraphQLArgument(name = "userDTO") UserDTO userDTO) {
+    public AuthenticationResponse signup(@GraphQLArgument(name = "userDTO") UserDTO userDTO) {
         String salt = BCrypt.gensalt();
         FourDDUser user = new FourDDUser(userDTO.getUsername(), BCrypt.hashpw(userDTO.getPassword(), salt));
         Set<Role> roles = new HashSet<>();
         roles.add(roleDAO.findByName("ROLE_User"));
         user.setRoles(roles);
-        return fourDDataUserDAO.saveAndFlush(user);
+        FourDDUser newUser = fourDDataUserDAO.saveAndFlush(user);
+        return new AuthenticationResponse(getJwtByUsername(newUser.getUsername()));
+    }
+
+    @GraphQLQuery(name = "getUserDetailsByUsername")
+    @PreAuthorize(value = "hasAnyAuthority('WRITE_PRIVILEGE')")
+    public FourDDUser getUserDetailsByUsername(String username){
+        return fourDDataUserDAO.findFirstByUsername(username);
+    }
+
+    private String getJwtByUsername(String username){
+        final FourDDataUserPrincipal userDetails = fourDDataUserDetailsService.loadUserByUsername(username);
+        FourDDataUserDTO fourDDataUserDTO = new FourDDataUserDTO(userDetails);
+        return jwtUtil.generateToken(fourDDataUserDTO);
     }
 }

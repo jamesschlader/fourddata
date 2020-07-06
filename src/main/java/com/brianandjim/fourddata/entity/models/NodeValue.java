@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.sql.Timestamp;
 
 @Entity
 @Getter
@@ -27,6 +28,9 @@ public class NodeValue {
     @GraphQLQuery
     private Double doubleValue;
 
+    @GraphQLQuery
+    private Timestamp createDate;
+
     @ManyToOne
     @JoinColumn(name = "nodeValueSpaceId", nullable = false)
     @GraphQLQuery
@@ -35,10 +39,11 @@ public class NodeValue {
     public NodeValue(NodeValueDTO nodeValueDTO){
         this.nodeValueId = nodeValueDTO.getNodeValueId();
         this.nodeValueSpace = nodeValueDTO.getNodeValueSpace();
+        this.createDate = new Timestamp(System.currentTimeMillis());
         try{
             this.doubleValue = Double.parseDouble(nodeValueDTO.getValue());
-        } catch (Exception e){
+        } catch (NumberFormatException e){
             this.stringValue = nodeValueDTO.getValue();
-        }
+    }
     }
 }

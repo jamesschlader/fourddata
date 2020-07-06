@@ -10,9 +10,13 @@ import io.leangen.graphql.spqr.spring.annotations.GraphQLApi;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
-import java.util.List;
-import java.util.Optional;
+import java.sql.Timestamp;
+import java.util.*;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @GraphQLApi
@@ -47,12 +51,52 @@ public class NodeService {
     public NodeValueSpace addValueToNode(@GraphQLArgument(name = "nodeId") Long nodeId, @GraphQLArgument(name =
             "value") NodeValueDTO value) {
         Optional<NodeValueSpace> space = nodeValueSpaceDao.findById(nodeId);
-       if(space.isPresent()){
-           value.setNodeValueSpace(space.get());
-       }
-        NodeValue savedValue = nodeValueDao.saveAndFlush(new NodeValue(value));
+        if (space.isPresent()) {
+            value.setNodeValueSpace(space.get());
+        }
+        NodeValue savedValue = nodeValueDao.saveAndFlush(new NodeValue(processValue(value, value.getOperator())));
         space.ifPresent(s -> s.getValues().add(savedValue));
         return nodeValueSpaceDao.saveAndFlush(space.get());
+    }
+
+    private NodeValueDTO processValue(NodeValueDTO nodeValueToProcess, String operator) {
+        if (StringUtils.isEmpty(nodeValueToProcess.getValue())) {
+            List<NodeValueSpace> spaces =
+                    nodeValueSpaceDao.findAllById(nodeValueToProcess.getNodeValuesSpacesToReduce());
+
+            List<Double> doublesToReduce = spaces
+                    .stream()
+                    .map(NodeValueSpace::getValues)
+                    .map(nodeValues -> nodeValues.stream().sorted(Comparator.comparing(NodeValue::getCreateDate).reversed())
+                            .filter(nodeValue -> Objects.nonNull(nodeValue.getDoubleValue())).collect(Collectors.toList()).get(0))
+                    .map(NodeValue::getDoubleValue)
+                    .collect(Collectors.toList());
+
+            Double reducedValue = reduceValuesBasedOnOperator(operator, doublesToReduce);
+
+            return new NodeValueDTO(nodeValueToProcess.getNodeValueId(), nodeValueToProcess.getNodeValueSpace(),
+                    reducedValue.toString(), nodeValueToProcess.getOperator(),
+                    nodeValueToProcess.getNodeValuesSpacesToReduce());
+        }
+        return new NodeValueDTO(nodeValueToProcess.getNodeValueId(), nodeValueToProcess.getNodeValueSpace(),
+                nodeValueToProcess.getValue(), nodeValueToProcess.getOperator(),
+                nodeValueToProcess.getNodeValuesSpacesToReduce());
+    }
+
+    private Double reduceValuesBasedOnOperator(String operator, List<Double> valuesToReduce) {
+        if ("sum".equalsIgnoreCase(operator)) {
+            return valuesToReduce.stream().reduce(Double::sum).get();
+        }
+        if ("min".equalsIgnoreCase(operator)) {
+            return valuesToReduce.stream().min(Double::compareTo).get();
+        }
+        if ("avg".equalsIgnoreCase(operator)) {
+            return valuesToReduce.stream().reduce((total, current) -> total + current).get() / valuesToReduce.size();
+        }
+        if("max".equalsIgnoreCase(operator)){
+            return valuesToReduce.stream().max(Double::compareTo).get();
+        }
+        return 0.0;
     }
 
 }
