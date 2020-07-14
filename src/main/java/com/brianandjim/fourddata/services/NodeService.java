@@ -8,6 +8,8 @@ import io.leangen.graphql.annotations.GraphQLMutation;
 import io.leangen.graphql.annotations.GraphQLQuery;
 import io.leangen.graphql.spqr.spring.annotations.GraphQLApi;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -21,7 +23,7 @@ import java.util.stream.Stream;
 @Service
 @GraphQLApi
 @Slf4j
-@PreAuthorize(value = "hasAnyAuthority('READ_PRIVILEGE')")
+//@PreAuthorize(value = "hasAnyAuthority('READ_PRIVILEGE')")
 public class NodeService {
 
     private final NodeValueSpaceDao nodeValueSpaceDao;
@@ -42,38 +44,39 @@ public class NodeService {
         return nodeValueSpaceDao.getOne(id);
     }
 
+    @GraphQLQuery(name = "getLatestValueForNode")
+    @Cacheable(value = "latestValues", key = "#nodeId")
+    public NodeValue getLatestValueForNode(@GraphQLArgument(name = "nodeId") Long nodeId) {
+        NodeValueSpace nodeValueSpace = nodeValueSpaceDao.findByNodeSpaceId(nodeId);
+        if (Objects.nonNull(nodeValueSpace)) {
+            return getLatestValue(nodeValueSpace.getValues());
+        }
+        return null;
+    }
+
     @GraphQLMutation(name = "saveNode")
     public NodeValueSpace saveNode(@GraphQLArgument(name = "newNode") NodeValueSpaceDTO nodeValueSpaceDTO) {
         return nodeValueSpaceDao.saveAndFlush(new NodeValueSpace(nodeValueSpaceDTO));
     }
 
     @GraphQLMutation(name = "addValueToNode")
-    public NodeValueSpace addValueToNode(@GraphQLArgument(name = "nodeId") Long nodeId, @GraphQLArgument(name =
+    @CachePut(value = "latestValues", key = "#nodeId")
+    public NodeValue addValueToNode(@GraphQLArgument(name = "nodeId") Long nodeId, @GraphQLArgument(name =
             "value") NodeValueDTO value) {
-        Optional<NodeValueSpace> space = nodeValueSpaceDao.findById(nodeId);
-        if (space.isPresent()) {
-            value.setNodeValueSpace(space.get());
-        }
+        NodeValueSpace space = nodeValueSpaceDao.findByNodeSpaceId(nodeId);
+        value.setNodeValueSpace(space);
         NodeValue savedValue = nodeValueDao.saveAndFlush(new NodeValue(processValue(value, value.getOperator())));
-        space.ifPresent(s -> s.getValues().add(savedValue));
-        return nodeValueSpaceDao.saveAndFlush(space.get());
+        space.getValues().add(savedValue);
+        notifyDependentNodeOfChange(space);
+        nodeValueSpaceDao.saveAndFlush(space);
+        return savedValue;
     }
 
     private NodeValueDTO processValue(NodeValueDTO nodeValueToProcess, String operator) {
         if (StringUtils.isEmpty(nodeValueToProcess.getValue())) {
             List<NodeValueSpace> spaces =
-                    nodeValueSpaceDao.findAllById(nodeValueToProcess.getNodeValuesSpacesToReduce());
-
-            List<Double> doublesToReduce = spaces
-                    .stream()
-                    .map(NodeValueSpace::getValues)
-                    .map(nodeValues -> nodeValues.stream().sorted(Comparator.comparing(NodeValue::getCreateDate).reversed())
-                            .filter(nodeValue -> Objects.nonNull(nodeValue.getDoubleValue())).collect(Collectors.toList()).get(0))
-                    .map(NodeValue::getDoubleValue)
-                    .collect(Collectors.toList());
-
-            Double reducedValue = reduceValuesBasedOnOperator(operator, doublesToReduce);
-
+                    nodeValueSpaceDao.findAllByNodeSpaceIdIn(nodeValueToProcess.getNodeValuesSpacesToReduce());
+            Double reducedValue = reduceValuesBasedOnOperator(operator, getLatestDoublesToReduce(spaces));
             return new NodeValueDTO(nodeValueToProcess.getNodeValueId(), nodeValueToProcess.getNodeValueSpace(),
                     reducedValue.toString(), nodeValueToProcess.getOperator(),
                     nodeValueToProcess.getNodeValuesSpacesToReduce());
@@ -93,10 +96,28 @@ public class NodeService {
         if ("avg".equalsIgnoreCase(operator)) {
             return valuesToReduce.stream().reduce((total, current) -> total + current).get() / valuesToReduce.size();
         }
-        if("max".equalsIgnoreCase(operator)){
+        if ("max".equalsIgnoreCase(operator)) {
             return valuesToReduce.stream().max(Double::compareTo).get();
         }
         return 0.0;
     }
 
+    private List<Double> getLatestDoublesToReduce(List<NodeValueSpace> spaces) {
+        return spaces
+                .stream()
+                .map(NodeValueSpace::getValues)
+                .map(this::getLatestValue)
+                .filter(nodeValue -> Objects.nonNull(nodeValue.getDoubleValue()))
+                .map(NodeValue::getDoubleValue)
+                .collect(Collectors.toList());
+    }
+
+    private void notifyDependentNodeOfChange(NodeValueSpace space){
+
+    }
+
+    private NodeValue getLatestValue(Set<NodeValue> values){
+        return values.stream().sorted(Comparator.comparing(NodeValue::getCreateDate).reversed())
+                        .collect(Collectors.toList()).get(0);
+    }
 }
