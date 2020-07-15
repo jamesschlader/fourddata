@@ -9,8 +9,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Entity
 @Getter
@@ -48,6 +50,8 @@ public class NodeValueSpace {
     @GraphQLQuery(name = "watchedSpaces")
     private Set<NodeValueSpace> watchedSpaces;
 
+    private String strategy;
+
     public NodeValueSpace(NodeValueSpaceDTO nodeValueSpaceDTO){
         this.nodeSpaceId = nodeValueSpaceDTO.getNodeSpaceId();
         this.xId = nodeValueSpaceDTO.getXId();
@@ -59,6 +63,11 @@ public class NodeValueSpace {
 
     public void addNodeValueSpaceToListeners(NodeValueSpace space){
         this.listeners.add(space);
+    }
+
+    public NodeValue getLatestValue(){
+        return this.values.stream().sorted(Comparator.comparing(NodeValue::getCreateDate).reversed())
+                .collect(Collectors.toList()).get(0);
     }
 
 }

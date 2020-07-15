@@ -12,10 +12,12 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,7 +51,7 @@ public class NodeService {
     public NodeValue getLatestValueForNode(@GraphQLArgument(name = "nodeId") Long nodeId) {
         NodeValueSpace nodeValueSpace = nodeValueSpaceDao.findByNodeSpaceId(nodeId);
         if (Objects.nonNull(nodeValueSpace)) {
-            return getLatestValue(nodeValueSpace.getValues());
+            return nodeValueSpace.getLatestValue();
         }
         return null;
     }
@@ -65,18 +67,26 @@ public class NodeService {
             "value") NodeValueDTO value) {
         NodeValueSpace space = nodeValueSpaceDao.findByNodeSpaceId(nodeId);
         value.setNodeValueSpace(space);
-        NodeValue savedValue = nodeValueDao.saveAndFlush(new NodeValue(processValue(value, value.getOperator())));
+        NodeValue savedValue = nodeValueDao.saveAndFlush(new NodeValue(processValue(value)));
         space.getValues().add(savedValue);
-        notifyDependentNodeOfChange(space);
-        nodeValueSpaceDao.saveAndFlush(space);
+        notifyDependentNodesOfChange(space);
+        try {
+            nodeValueSpaceDao.saveAndFlush(space);
+        } catch (UnsupportedOperationException e) {
+            log.error("Trouble saving to " + space.getNodeSpaceId());
+            log.error(e.getMessage());
+        }
         return savedValue;
     }
 
-    private NodeValueDTO processValue(NodeValueDTO nodeValueToProcess, String operator) {
+    private NodeValueDTO processValue(NodeValueDTO nodeValueToProcess) {
         if (StringUtils.isEmpty(nodeValueToProcess.getValue())) {
             List<NodeValueSpace> spaces =
                     nodeValueSpaceDao.findAllByNodeSpaceIdIn(nodeValueToProcess.getNodeValuesSpacesToReduce());
-            Double reducedValue = reduceValuesBasedOnOperator(operator, getLatestDoublesToReduce(spaces));
+            Double reducedValue = reduceValuesBasedOnOperator(nodeValueToProcess.getOperator(), getLatestDoublesToReduce(spaces));
+            spaces.forEach(space -> space.addNodeValueSpaceToListeners(nodeValueToProcess.getNodeValueSpace()));
+            nodeValueToProcess.getNodeValueSpace().setWatchedSpaces(Set.copyOf(spaces));
+            nodeValueToProcess.getNodeValueSpace().setStrategy(nodeValueToProcess.getOperator());
             return new NodeValueDTO(nodeValueToProcess.getNodeValueId(), nodeValueToProcess.getNodeValueSpace(),
                     reducedValue.toString(), nodeValueToProcess.getOperator(),
                     nodeValueToProcess.getNodeValuesSpacesToReduce());
@@ -87,6 +97,9 @@ public class NodeService {
     }
 
     private Double reduceValuesBasedOnOperator(String operator, List<Double> valuesToReduce) {
+        if (ObjectUtils.isEmpty(valuesToReduce)) {
+            return 0D;
+        }
         if ("sum".equalsIgnoreCase(operator)) {
             return valuesToReduce.stream().reduce(Double::sum).get();
         }
@@ -105,19 +118,21 @@ public class NodeService {
     private List<Double> getLatestDoublesToReduce(List<NodeValueSpace> spaces) {
         return spaces
                 .stream()
-                .map(NodeValueSpace::getValues)
-                .map(this::getLatestValue)
+                .map(NodeValueSpace::getLatestValue)
                 .filter(nodeValue -> Objects.nonNull(nodeValue.getDoubleValue()))
                 .map(NodeValue::getDoubleValue)
                 .collect(Collectors.toList());
     }
 
-    private void notifyDependentNodeOfChange(NodeValueSpace space){
-
-    }
-
-    private NodeValue getLatestValue(Set<NodeValue> values){
-        return values.stream().sorted(Comparator.comparing(NodeValue::getCreateDate).reversed())
-                        .collect(Collectors.toList()).get(0);
+    private void notifyDependentNodesOfChange(NodeValueSpace space) {
+        int counter = 0;
+        List<NodeValueSpace> listeners = new ArrayList<>(space.getListeners());
+        while (counter < space.getListeners().size()) {
+            NodeValueSpace currentSpace = listeners.get(counter);
+            this.addValueToNode(currentSpace.getNodeSpaceId(), new NodeValueDTO(null, null, null,
+                    currentSpace.getStrategy(),
+                    currentSpace.getWatchedSpaces().stream().map(NodeValueSpace::getNodeSpaceId).collect(Collectors.toList())));
+            counter++;
+        }
     }
 }
