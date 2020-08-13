@@ -28,7 +28,7 @@ public class World {
     @GraphQLQuery
     private String description;
     @ManyToOne
-    @JoinColumn(name = "universe_id")
+    @JoinColumn(name = "universe_id", nullable = false)
     @GraphQLQuery
     private Universe universe;
 

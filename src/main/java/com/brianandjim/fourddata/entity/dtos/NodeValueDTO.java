@@ -17,5 +17,6 @@ public class NodeValueDTO {
     private NodeValueSpace nodeValueSpace;
     private String value;
     private String operator;
+    private Integer power;
     private List<Long> nodeValuesSpacesToReduce;
 }

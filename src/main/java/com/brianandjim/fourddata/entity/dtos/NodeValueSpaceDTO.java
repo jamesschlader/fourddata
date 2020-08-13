@@ -15,5 +15,9 @@ public class NodeValueSpaceDTO {
     private Long nodeSpaceId;
     private Long xId;
     private Long yId;
-    private World world;
+    private Long worldId;
+    private String name;
+    private String description;
+    private String operator;
+    private Integer power;
 }

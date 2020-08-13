@@ -15,25 +15,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
-import java.sql.Timestamp;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @GraphQLApi
 @Slf4j
-//@PreAuthorize(value = "hasAnyAuthority('READ_PRIVILEGE')")
+@PreAuthorize(value = "hasAnyAuthority('READ_PRIVILEGE')")
 public class NodeService {
 
     private final NodeValueSpaceDao nodeValueSpaceDao;
     private final NodeValueDao nodeValueDao;
+    private final WorldDao worldDao;
 
-    public NodeService(NodeValueSpaceDao nodeValueSpaceDao, NodeValueDao nodeValueDao) {
+    public NodeService(NodeValueSpaceDao nodeValueSpaceDao, NodeValueDao nodeValueDao, WorldDao worldDao) {
         this.nodeValueSpaceDao = nodeValueSpaceDao;
         this.nodeValueDao = nodeValueDao;
+        this.worldDao = worldDao;
     }
 
     @GraphQLQuery(name = "nodes")
@@ -58,7 +56,22 @@ public class NodeService {
 
     @GraphQLMutation(name = "saveNode")
     public NodeValueSpace saveNode(@GraphQLArgument(name = "newNode") NodeValueSpaceDTO nodeValueSpaceDTO) {
-        return nodeValueSpaceDao.saveAndFlush(new NodeValueSpace(nodeValueSpaceDTO));
+        World world = worldDao.findFirstByWorldId(nodeValueSpaceDTO.getWorldId());
+        NodeValueSpace newSpace = new NodeValueSpace(nodeValueSpaceDTO);
+        newSpace.setWorld(world);
+        return nodeValueSpaceDao.saveAndFlush(newSpace);
+    }
+
+    @GraphQLMutation(name = "updateNode")
+    public NodeValueSpace updateNode(@GraphQLArgument(name = "node") NodeValueSpaceDTO nodeValueSpaceDTO) {
+        NodeValueSpace existingNode = nodeValueSpaceDao.findByNodeSpaceId(nodeValueSpaceDTO.getNodeSpaceId());
+        if (Objects.nonNull(nodeValueSpaceDTO.getDescription())) {
+            existingNode.setName(nodeValueSpaceDTO.getName());
+        }
+        if (Objects.nonNull(nodeValueSpaceDTO.getDescription())) {
+            existingNode.setDescription(nodeValueSpaceDTO.getDescription());
+        }
+        return nodeValueSpaceDao.saveAndFlush(existingNode);
     }
 
     @GraphQLMutation(name = "addValueToNode")
@@ -83,20 +96,21 @@ public class NodeService {
         if (StringUtils.isEmpty(nodeValueToProcess.getValue())) {
             List<NodeValueSpace> spaces =
                     nodeValueSpaceDao.findAllByNodeSpaceIdIn(nodeValueToProcess.getNodeValuesSpacesToReduce());
-            Double reducedValue = reduceValuesBasedOnOperator(nodeValueToProcess.getOperator(), getLatestDoublesToReduce(spaces));
+            Double reducedValue = reduceValuesBasedOnOperator(nodeValueToProcess, getLatestDoublesToReduce(spaces));
             spaces.forEach(space -> space.addNodeValueSpaceToListeners(nodeValueToProcess.getNodeValueSpace()));
             nodeValueToProcess.getNodeValueSpace().setWatchedSpaces(Set.copyOf(spaces));
             nodeValueToProcess.getNodeValueSpace().setStrategy(nodeValueToProcess.getOperator());
             return new NodeValueDTO(nodeValueToProcess.getNodeValueId(), nodeValueToProcess.getNodeValueSpace(),
-                    reducedValue.toString(), nodeValueToProcess.getOperator(),
+                    reducedValue.toString(), nodeValueToProcess.getOperator(), nodeValueToProcess.getPower(),
                     nodeValueToProcess.getNodeValuesSpacesToReduce());
         }
         return new NodeValueDTO(nodeValueToProcess.getNodeValueId(), nodeValueToProcess.getNodeValueSpace(),
-                nodeValueToProcess.getValue(), nodeValueToProcess.getOperator(),
+                nodeValueToProcess.getValue(), nodeValueToProcess.getOperator(), nodeValueToProcess.getPower(),
                 nodeValueToProcess.getNodeValuesSpacesToReduce());
     }
 
-    private Double reduceValuesBasedOnOperator(String operator, List<Double> valuesToReduce) {
+    private Double reduceValuesBasedOnOperator(NodeValueDTO nodeValueToProcess, List<Double> valuesToReduce) {
+        String operator = nodeValueToProcess.getOperator();
         if (ObjectUtils.isEmpty(valuesToReduce)) {
             return 0D;
         }
@@ -111,6 +125,15 @@ public class NodeService {
         }
         if ("max".equalsIgnoreCase(operator)) {
             return valuesToReduce.stream().max(Double::compareTo).get();
+        }
+        if ("product".equalsIgnoreCase(operator) && Objects.isNull(nodeValueToProcess.getPower())) {
+            return valuesToReduce.stream().reduce((total, current) -> total * current).get();
+        }
+        if ("product".equalsIgnoreCase(operator)) {
+            for (int i = 1; i < nodeValueToProcess.getPower(); i++) {
+                valuesToReduce.add(valuesToReduce.get(0));
+            }
+            return valuesToReduce.stream().reduce((total, current) -> total * current).get();
         }
         return 0.0;
     }
@@ -130,7 +153,7 @@ public class NodeService {
         while (counter < space.getListeners().size()) {
             NodeValueSpace currentSpace = listeners.get(counter);
             this.addValueToNode(currentSpace.getNodeSpaceId(), new NodeValueDTO(null, null, null,
-                    currentSpace.getStrategy(),
+                    currentSpace.getStrategy(), currentSpace.getPower(),
                     currentSpace.getWatchedSpaces().stream().map(NodeValueSpace::getNodeSpaceId).collect(Collectors.toList())));
             counter++;
         }

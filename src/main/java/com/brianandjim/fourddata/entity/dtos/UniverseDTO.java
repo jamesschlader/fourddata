@@ -15,5 +15,6 @@ public class UniverseDTO {
     private Long universeId;
     private String name;
     private String description;
+    private String username;
     private FourDDUser user;
 }

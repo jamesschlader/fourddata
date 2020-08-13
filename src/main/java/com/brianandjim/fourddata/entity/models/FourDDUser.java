@@ -26,7 +26,7 @@ public class FourDDUser {
     @Column(nullable = false, unique = true)
     @GraphQLQuery(name = "username")
     private String username;
-    @GraphQLQuery(name = "password")
+
     private String password;
     @GraphQLQuery(name = "isAccountNonExpired")
     private boolean isAccountNonExpired;

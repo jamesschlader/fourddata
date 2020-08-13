@@ -1,9 +1,11 @@
 package com.brianandjim.fourddata.services;
 
+import com.brianandjim.fourddata.entity.dao.FourDDataUserDAO;
 import com.brianandjim.fourddata.entity.dao.UniverseDao;
 import com.brianandjim.fourddata.entity.dao.WorldDao;
 import com.brianandjim.fourddata.entity.dtos.UniverseDTO;
 import com.brianandjim.fourddata.entity.dtos.WorldDTO;
+import com.brianandjim.fourddata.entity.models.FourDDUser;
 import com.brianandjim.fourddata.entity.models.Universe;
 import com.brianandjim.fourddata.entity.models.World;
 import io.leangen.graphql.annotations.GraphQLArgument;
@@ -15,7 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 
 @Service
 @GraphQLApi
@@ -25,10 +27,12 @@ public class UniverseService {
 
     private final UniverseDao universeDao;
     private final WorldDao worldDao;
+    private final FourDDataUserDAO fourDDataUserDAO;
 
-    public UniverseService(UniverseDao universeDao, WorldDao worldDao) {
+    public UniverseService(UniverseDao universeDao, WorldDao worldDao, FourDDataUserDAO fourDDataUserDAO) {
         this.universeDao = universeDao;
         this.worldDao = worldDao;
+        this.fourDDataUserDAO = fourDDataUserDAO;
     }
 
     @GraphQLQuery(name = "universes")
@@ -48,29 +52,31 @@ public class UniverseService {
 
     @GraphQLMutation(name = "createUniverse")
     public Universe createUniverse(@GraphQLArgument(name = "universe") UniverseDTO universeDTO) {
+        FourDDUser user = fourDDataUserDAO.findFirstByUsername(universeDTO.getUsername());
+        universeDTO.setUser(user);
         return universeDao.saveAndFlush(new Universe(universeDTO));
     }
 
     @GraphQLMutation(name = "addWorldToUniverse")
     public Universe addWorldToUniverse(@GraphQLArgument(name = "universeId") Long universeId, @GraphQLArgument(name =
             "worldId") Long worldId) {
-        Optional<Universe> universe = universeDao.findById(universeId);
-        Optional<World> existingWorld = worldDao.findById(worldId);
-        if (universe.isPresent() && existingWorld.isPresent()) {
-            existingWorld.get().setUniverse(universe.get());
-            universe.get().getWorlds().add(existingWorld.get());
+        Universe universe = universeDao.findByUniverseId(universeId);
+        World existingWorld = worldDao.findFirstByWorldId(worldId);
+        if (Objects.nonNull(universe) && Objects.nonNull(existingWorld)) {
+            existingWorld.setUniverse(universe);
+            universe.getWorlds().add(existingWorld);
         }
-        return universeDao.saveAndFlush(universe.get());
+        return universeDao.saveAndFlush(universe);
     }
 
     @GraphQLMutation(name = "addWorldToUniverse")
     public Universe addWorldToUniverse(@GraphQLArgument(name = "universeDTO") UniverseDTO universeDTO,
                                        @GraphQLArgument(name = "worldId") Long worldId){
-        Optional<World> existingWorld = worldDao.findById(worldId);
+        World existingWorld = worldDao.findFirstByWorldId(worldId);
         Universe universe = new Universe(universeDTO);
-        if (existingWorld.isPresent()){
-            existingWorld.get().setUniverse(universe);
-            universe.getWorlds().add(existingWorld.get());
+        if (Objects.nonNull(existingWorld)){
+            existingWorld.setUniverse(universe);
+            universe.getWorlds().add(existingWorld);
         }
         return universeDao.saveAndFlush(universe);
     }
@@ -78,16 +84,16 @@ public class UniverseService {
     @GraphQLMutation(name = "addWorldToUniverse")
     public Universe addWorldToUniverse(@GraphQLArgument(name = "universeId") Long universeId, @GraphQLArgument(name =
             "worldDTO") WorldDTO worldDTO){
-        Optional<Universe> universe = universeDao.findById(universeId);
+        Universe universe = universeDao.findByUniverseId(universeId);
         World world = new World();
         world.setDescription(worldDTO.getDescription());
         world.setName(worldDTO.getName());
         world = worldDao.saveAndFlush(world);
-        if(universe.isPresent()){
-            universe.get().getWorlds().add(world);
-            world.setUniverse(universe.get());
+        if(Objects.nonNull(universe)){
+            universe.getWorlds().add(world);
+            world.setUniverse(universe);
         }
-        return universeDao.saveAndFlush(universe.get());
+        return universeDao.saveAndFlush(universe);
     }
 
     @GraphQLMutation(name = "addWorldToUniverse")

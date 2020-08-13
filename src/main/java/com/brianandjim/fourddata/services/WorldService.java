@@ -18,7 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 
 @Service
 @GraphQLApi
@@ -59,8 +59,11 @@ public class WorldService {
         World newWorld = new World();
         newWorld.setDescription(worldDTO.getDescription());
         newWorld.setName(worldDTO.getName());
-        Optional<Universe> targetUniverse = universeDao.findById(worldDTO.getUniverse().getUniverseId());
-        targetUniverse.ifPresent(newWorld::setUniverse);
+        Universe targetUniverse = universeDao.findByUniverseId(worldDTO.getUniverse().getUniverseId());
+        if (Objects.nonNull(targetUniverse)) {
+            newWorld.setUniverse(targetUniverse);
+            targetUniverse.getWorlds().add(newWorld);
+        }
         return worldDao.saveAndFlush(newWorld);
     }
 
@@ -76,11 +79,13 @@ public class WorldService {
     @GraphQLMutation(name = "addNodeToWorld")
     public World addNodeToWorld(@GraphQLArgument(name = "worldId") Long worldId,
                                 @GraphQLArgument(name = "node") NodeValueSpaceDTO nodeValueSpaceDTO) {
-        Optional<World> world = worldDao.findById(worldId);
+        World world = worldDao.findFirstByWorldId(worldId);
         NodeValueSpace node = new NodeValueSpace(nodeValueSpaceDTO);
-        world.ifPresent(node::setWorld);
-        NodeValueSpace savedNode = nodeValueSpaceDao.saveAndFlush(node);
-        world.ifPresent(world1 -> world1.getNodes().add(savedNode));
-        return worldDao.saveAndFlush(world.get());
+        if (Objects.nonNull(world)) {
+            node.setWorld(world);
+            world.getNodes().add(nodeValueSpaceDao.saveAndFlush(node));
+            return worldDao.saveAndFlush(world);
+        }
+        return new World();
     }
 }

@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface WorldDao extends JpaRepository<World, Long> {
+    World findFirstByWorldId(Long worldId);
 }

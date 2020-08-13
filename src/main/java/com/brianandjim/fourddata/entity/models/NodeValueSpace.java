@@ -32,9 +32,13 @@ public class NodeValueSpace {
     @Column(nullable = false)
     @GraphQLQuery
     private Long yId;
+    @GraphQLQuery
+    private String name;
+    @GraphQLQuery
+    private String description;
 
     @ManyToOne
-    @JoinColumn(name = "world_id", nullable = false)
+    @JoinColumn(name = "world_id")
     @GraphQLQuery
     private World world;
 
@@ -50,15 +54,22 @@ public class NodeValueSpace {
     @GraphQLQuery(name = "watchedSpaces")
     private Set<NodeValueSpace> watchedSpaces;
 
+    @GraphQLQuery(name = "strategy")
     private String strategy;
+
+    @GraphQLQuery(name = "power")
+    private Integer power;
 
     public NodeValueSpace(NodeValueSpaceDTO nodeValueSpaceDTO){
         this.nodeSpaceId = nodeValueSpaceDTO.getNodeSpaceId();
         this.xId = nodeValueSpaceDTO.getXId();
         this.yId = nodeValueSpaceDTO.getYId();
-        this.world = nodeValueSpaceDTO.getWorld();
         this.listeners = new HashSet<>();
         this.watchedSpaces = new HashSet<>();
+        this.name = nodeValueSpaceDTO.getName();
+        this.description = nodeValueSpaceDTO.getDescription();
+        this.strategy = nodeValueSpaceDTO.getOperator();
+        this.power = nodeValueSpaceDTO.getPower();
     }
 
     public void addNodeValueSpaceToListeners(NodeValueSpace space){

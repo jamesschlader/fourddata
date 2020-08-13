@@ -35,7 +35,7 @@ public class Universe {
     private Set<World> worlds;
     @GraphQLQuery(name = "user")
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private FourDDUser user;
 
     public Universe(UniverseDTO universeDTO) {
