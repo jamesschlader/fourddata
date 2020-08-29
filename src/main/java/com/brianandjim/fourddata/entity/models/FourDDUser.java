@@ -53,6 +53,10 @@ public class FourDDUser {
         this(null, username, password, true, true, true, true, new HashSet<>(), new HashSet<>());
     }
 
+    public void addUniverse(Universe universe){
+        this.universes.add(universe);
+    }
+
     public void addRole(Role role){
         roles.add(role);
     }

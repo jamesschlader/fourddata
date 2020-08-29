@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 @GraphQLApi
@@ -40,13 +41,19 @@ public class UniverseService {
         return universeDao.findAll();
     }
 
+    @GraphQLQuery(name = "getUniversesForUser")
+    public Set<Universe> getUniversesForUser(@GraphQLArgument(name = "username") String username) {
+        FourDDUser user = fourDDataUserDAO.findFirstByUsername(username);
+        return user.getUniverses();
+    }
+
     @GraphQLQuery(name = "universeById")
     public Universe getOneUniverse(@GraphQLArgument(name = "universeId") Long id) {
         return universeDao.getOne(id);
     }
 
     @GraphQLQuery(name = "getUniverseByName")
-    public Universe getUniverseByName(@GraphQLArgument(name = "name") String name){
+    public Universe getUniverseByName(@GraphQLArgument(name = "name") String name) {
         return universeDao.findFirstByName(name);
     }
 
@@ -54,7 +61,10 @@ public class UniverseService {
     public Universe createUniverse(@GraphQLArgument(name = "universe") UniverseDTO universeDTO) {
         FourDDUser user = fourDDataUserDAO.findFirstByUsername(universeDTO.getUsername());
         universeDTO.setUser(user);
-        return universeDao.saveAndFlush(new Universe(universeDTO));
+        Universe savedUniverse = universeDao.saveAndFlush(new Universe(universeDTO));
+        user.addUniverse(savedUniverse);
+        fourDDataUserDAO.saveAndFlush(user);
+        return savedUniverse;
     }
 
     @GraphQLMutation(name = "addWorldToUniverse")
@@ -71,10 +81,18 @@ public class UniverseService {
 
     @GraphQLMutation(name = "addWorldToUniverse")
     public Universe addWorldToUniverse(@GraphQLArgument(name = "universeDTO") UniverseDTO universeDTO,
-                                       @GraphQLArgument(name = "worldId") Long worldId){
+                                       @GraphQLArgument(name = "worldId") Long worldId) {
+        Universe universe;
+        Universe existingUniverse = universeDao.findByUniverseId(universeDTO.getUniverseId());
+        FourDDUser user = fourDDataUserDAO.findFirstByUsername(universeDTO.getUsername());
+        if(Objects.nonNull(existingUniverse)){
+            universe = existingUniverse;
+        } else {
+            universe = new Universe(universeDTO);
+            user.addUniverse(universe);
+        }
         World existingWorld = worldDao.findFirstByWorldId(worldId);
-        Universe universe = new Universe(universeDTO);
-        if (Objects.nonNull(existingWorld)){
+        if (Objects.nonNull(existingWorld)) {
             existingWorld.setUniverse(universe);
             universe.getWorlds().add(existingWorld);
         }
@@ -83,13 +101,13 @@ public class UniverseService {
 
     @GraphQLMutation(name = "addWorldToUniverse")
     public Universe addWorldToUniverse(@GraphQLArgument(name = "universeId") Long universeId, @GraphQLArgument(name =
-            "worldDTO") WorldDTO worldDTO){
+            "worldDTO") WorldDTO worldDTO) {
         Universe universe = universeDao.findByUniverseId(universeId);
         World world = new World();
         world.setDescription(worldDTO.getDescription());
         world.setName(worldDTO.getName());
         world = worldDao.saveAndFlush(world);
-        if(Objects.nonNull(universe)){
+        if (Objects.nonNull(universe)) {
             universe.getWorlds().add(world);
             world.setUniverse(universe);
         }
@@ -98,7 +116,7 @@ public class UniverseService {
 
     @GraphQLMutation(name = "addWorldToUniverse")
     public Universe addWorldToUniverse(@GraphQLArgument(name = "universe") UniverseDTO universeDTO,
-                                          @GraphQLArgument(name = "world") WorldDTO worldDTO){
+                                       @GraphQLArgument(name = "world") WorldDTO worldDTO) {
         Universe universe = new Universe(universeDTO);
         universe = universeDao.saveAndFlush(universe);
         World world = new World();
