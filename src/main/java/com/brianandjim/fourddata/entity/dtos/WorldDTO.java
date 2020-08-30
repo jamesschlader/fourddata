@@ -6,14 +6,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 public class WorldDTO {
-    private Long worldId;
+    private String worldId;
     private String name;
     private String description;
+    private List<NodeValueSpaceDTO> nodes;
     private Universe universe;
+    private Long universeId;
 }

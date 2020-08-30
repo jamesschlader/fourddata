@@ -1,10 +1,12 @@
 package com.brianandjim.fourddata.entity.dtos;
 
-import com.brianandjim.fourddata.entity.models.World;
+import com.brianandjim.fourddata.entity.models.NodeValueSpace;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.Set;
 
 
 @AllArgsConstructor
@@ -13,11 +15,12 @@ import lombok.Setter;
 @Setter
 public class NodeValueSpaceDTO {
     private Long nodeSpaceId;
-    private Long xId;
-    private Long yId;
+    private Integer xId;
+    private Integer yId;
     private Long worldId;
     private String name;
     private String description;
+    private Set<NodeValueSpace> watchedSpaces;
     private String operator;
     private Integer power;
 }

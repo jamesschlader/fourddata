@@ -36,9 +36,13 @@ public class World {
     @OneToMany(mappedBy = "world")
     private Set<NodeValueSpace> nodes;
 
-    public World(WorldDTO worldDTO){
-        this.worldId = worldDTO.getWorldId();
+    public World(WorldDTO worldDTO) {
+        this.worldId = Long.parseLong(worldDTO.getWorldId());
         this.description = worldDTO.getDescription();
         this.universe = worldDTO.getUniverse();
+    }
+
+    public void addNode(NodeValueSpace node) {
+        this.nodes.add(node);
     }
 }

@@ -11,6 +11,7 @@ import lombok.Setter;
 import javax.persistence.*;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -28,10 +29,10 @@ public class NodeValueSpace {
 
     @Column(nullable = false)
     @GraphQLQuery
-    private Long xId;
+    private Integer xId;
     @Column(nullable = false)
     @GraphQLQuery
-    private Long yId;
+    private Integer yId;
     @GraphQLQuery
     private String name;
     @GraphQLQuery
@@ -60,12 +61,13 @@ public class NodeValueSpace {
     @GraphQLQuery(name = "power")
     private Integer power;
 
-    public NodeValueSpace(NodeValueSpaceDTO nodeValueSpaceDTO){
+    public NodeValueSpace(NodeValueSpaceDTO nodeValueSpaceDTO) {
         this.nodeSpaceId = nodeValueSpaceDTO.getNodeSpaceId();
         this.xId = nodeValueSpaceDTO.getXId();
         this.yId = nodeValueSpaceDTO.getYId();
         this.listeners = new HashSet<>();
-        this.watchedSpaces = new HashSet<>();
+        this.watchedSpaces = Objects.nonNull(nodeValueSpaceDTO.getWatchedSpaces()) ? nodeValueSpaceDTO.getWatchedSpaces() :
+                new HashSet<>();
         this.name = nodeValueSpaceDTO.getName();
         this.description = nodeValueSpaceDTO.getDescription();
         this.strategy = nodeValueSpaceDTO.getOperator();

@@ -1,11 +1,13 @@
 package com.brianandjim.fourddata.services;
 
 import com.brianandjim.fourddata.entity.dao.FourDDataUserDAO;
+import com.brianandjim.fourddata.entity.dao.NodeValueSpaceDao;
 import com.brianandjim.fourddata.entity.dao.UniverseDao;
 import com.brianandjim.fourddata.entity.dao.WorldDao;
 import com.brianandjim.fourddata.entity.dtos.UniverseDTO;
 import com.brianandjim.fourddata.entity.dtos.WorldDTO;
 import com.brianandjim.fourddata.entity.models.FourDDUser;
+import com.brianandjim.fourddata.entity.models.NodeValueSpace;
 import com.brianandjim.fourddata.entity.models.Universe;
 import com.brianandjim.fourddata.entity.models.World;
 import io.leangen.graphql.annotations.GraphQLArgument;
@@ -15,10 +17,12 @@ import io.leangen.graphql.spqr.spring.annotations.GraphQLApi;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @GraphQLApi
@@ -29,11 +33,13 @@ public class UniverseService {
     private final UniverseDao universeDao;
     private final WorldDao worldDao;
     private final FourDDataUserDAO fourDDataUserDAO;
+    private final NodeValueSpaceDao nodeValueSpaceDao;
 
-    public UniverseService(UniverseDao universeDao, WorldDao worldDao, FourDDataUserDAO fourDDataUserDAO) {
+    public UniverseService(UniverseDao universeDao, WorldDao worldDao, FourDDataUserDAO fourDDataUserDAO, NodeValueSpaceDao nodeValueSpaceDao) {
         this.universeDao = universeDao;
         this.worldDao = worldDao;
         this.fourDDataUserDAO = fourDDataUserDAO;
+        this.nodeValueSpaceDao = nodeValueSpaceDao;
     }
 
     @GraphQLQuery(name = "universes")
@@ -85,7 +91,7 @@ public class UniverseService {
         Universe universe;
         Universe existingUniverse = universeDao.findByUniverseId(universeDTO.getUniverseId());
         FourDDUser user = fourDDataUserDAO.findFirstByUsername(universeDTO.getUsername());
-        if(Objects.nonNull(existingUniverse)){
+        if (Objects.nonNull(existingUniverse)) {
             universe = existingUniverse;
         } else {
             universe = new Universe(universeDTO);
@@ -100,16 +106,28 @@ public class UniverseService {
     }
 
     @GraphQLMutation(name = "addWorldToUniverse")
-    public Universe addWorldToUniverse(@GraphQLArgument(name = "universeId") Long universeId, @GraphQLArgument(name =
+    public Universe addWorldToUniverse(@GraphQLArgument(name =
             "worldDTO") WorldDTO worldDTO) {
-        Universe universe = universeDao.findByUniverseId(universeId);
-        World world = new World();
+        Universe universe = universeDao.findByUniverseId(worldDTO.getUniverseId());
+        World world;
+        if (ObjectUtils.isEmpty(worldDTO.getWorldId())) {
+            world = new World();
+        } else {
+            world = worldDao.findFirstByWorldId(Long.parseLong(worldDTO.getWorldId()));
+        }
         world.setDescription(worldDTO.getDescription());
         world.setName(worldDTO.getName());
-        world = worldDao.saveAndFlush(world);
-        if (Objects.nonNull(universe)) {
-            universe.getWorlds().add(world);
-            world.setUniverse(universe);
+        universe.getWorlds().add(world);
+        world.setUniverse(universe);
+        World savedWorld = worldDao.saveAndFlush(world);
+        if (Objects.nonNull(worldDTO.getNodes())) {
+            List<NodeValueSpace> nodes =
+                    worldDTO.getNodes().stream().map(nodeValueSpaceDTO -> nodeValueSpaceDao.saveAndFlush(new NodeValueSpace(nodeValueSpaceDTO))).collect(Collectors.toList());
+            nodes.forEach(nodeValueSpace -> {
+                nodeValueSpace.setWorld(savedWorld);
+                nodeValueSpaceDao.saveAndFlush(nodeValueSpace);
+            });
+            savedWorld.setNodes(Set.copyOf(nodes));
         }
         return universeDao.saveAndFlush(universe);
     }

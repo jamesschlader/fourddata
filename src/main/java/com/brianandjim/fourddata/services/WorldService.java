@@ -14,11 +14,13 @@ import io.leangen.graphql.annotations.GraphQLQuery;
 import io.leangen.graphql.spqr.spring.annotations.GraphQLApi;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @GraphQLApi
@@ -39,8 +41,6 @@ public class WorldService {
 
     @GraphQLQuery(name = "worlds")
     public List<World> getAllWorlds() {
-        var context = SecurityContextHolder.getContext();
-        log.info("some context: " + context.getAuthentication().getPrincipal().toString());
         return worldDao.findAll();
     }
 
@@ -87,5 +87,22 @@ public class WorldService {
             return worldDao.saveAndFlush(world);
         }
         return new World();
+    }
+
+    @GraphQLMutation(name = "editWorld")
+    public World editWorld(@GraphQLArgument(name = "worldDTO") WorldDTO worldDTO) {
+        World existingWorld = worldDao.findFirstByWorldId(Long.parseLong(worldDTO.getWorldId()));
+        existingWorld.setName(worldDTO.getName());
+        existingWorld.setDescription(worldDTO.getDescription());
+        if (Objects.nonNull(worldDTO.getNodes())) {
+            Set<NodeValueSpace> existingNodes = existingWorld.getNodes();
+            Set<NodeValueSpace> incomingNodes =
+                    worldDTO.getNodes().stream().map(NodeValueSpace::new).collect(Collectors.toSet());
+            if (!existingNodes.equals(incomingNodes)) {
+                List<NodeValueSpace> savedNodes = nodeValueSpaceDao.saveAll(incomingNodes);
+                existingWorld.setNodes(new HashSet<>(savedNodes));
+            }
+        }
+        return worldDao.saveAndFlush(existingWorld);
     }
 }
