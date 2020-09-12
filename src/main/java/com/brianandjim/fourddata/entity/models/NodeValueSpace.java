@@ -61,6 +61,9 @@ public class NodeValueSpace {
     @GraphQLQuery(name = "power")
     private Integer power;
 
+    @GraphQLQuery(name = "dataType")
+    private String dataType;
+
     public NodeValueSpace(NodeValueSpaceDTO nodeValueSpaceDTO) {
         this.nodeSpaceId = nodeValueSpaceDTO.getNodeSpaceId();
         this.xId = nodeValueSpaceDTO.getXId();
@@ -70,17 +73,24 @@ public class NodeValueSpace {
                 new HashSet<>();
         this.name = nodeValueSpaceDTO.getName();
         this.description = nodeValueSpaceDTO.getDescription();
-        this.strategy = nodeValueSpaceDTO.getOperator();
+        this.strategy = nodeValueSpaceDTO.getStrategy();
         this.power = nodeValueSpaceDTO.getPower();
+        this.dataType = nodeValueSpaceDTO.getDataType();
+        this.values = new HashSet<>();
     }
 
-    public void addNodeValueSpaceToListeners(NodeValueSpace space){
+    public void addNodeValueSpaceToListeners(NodeValueSpace space) {
         this.listeners.add(space);
     }
 
-    public NodeValue getLatestValue(){
+    public NodeValue getLatestValue() {
         return this.values.stream().sorted(Comparator.comparing(NodeValue::getCreateDate).reversed())
                 .collect(Collectors.toList()).get(0);
+    }
+
+    public void addValue(NodeValue nodeValue) {
+        this.dataType = Objects.nonNull(nodeValue.getDoubleValue()) ? "number" : "text";
+        this.values.add(nodeValue);
     }
 
 }

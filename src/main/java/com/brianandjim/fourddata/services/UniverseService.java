@@ -108,11 +108,14 @@ public class UniverseService {
     @GraphQLMutation(name = "addWorldToUniverse")
     public Universe addWorldToUniverse(@GraphQLArgument(name =
             "worldDTO") WorldDTO worldDTO) {
+        log.info("Request to add world: " + worldDTO.getName() + " to universe: " + worldDTO.getUniverseId());
         Universe universe = universeDao.findByUniverseId(worldDTO.getUniverseId());
         World world;
         if (ObjectUtils.isEmpty(worldDTO.getWorldId())) {
+            log.info("Creating a brand new world...");
             world = new World();
         } else {
+            log.info("Editing an already exiting world, worldId: " + worldDTO.getWorldId());
             world = worldDao.findFirstByWorldId(Long.parseLong(worldDTO.getWorldId()));
         }
         world.setDescription(worldDTO.getDescription());
@@ -121,14 +124,20 @@ public class UniverseService {
         world.setUniverse(universe);
         World savedWorld = worldDao.saveAndFlush(world);
         if (Objects.nonNull(worldDTO.getNodes())) {
+            log.info("The world: " + world.getWorldId() + " has nodes to save.");
+            log.info("The first node to save has a dataType = " + worldDTO.getNodes().get(0).getDataType());
             List<NodeValueSpace> nodes =
                     worldDTO.getNodes().stream().map(nodeValueSpaceDTO -> nodeValueSpaceDao.saveAndFlush(new NodeValueSpace(nodeValueSpaceDTO))).collect(Collectors.toList());
+            log.info("Saved all the nodes into the db. Total nodes saved is: " + nodes.size());
             nodes.forEach(nodeValueSpace -> {
                 nodeValueSpace.setWorld(savedWorld);
-                nodeValueSpaceDao.saveAndFlush(nodeValueSpace);
+                NodeValueSpace savedNode = nodeValueSpaceDao.saveAndFlush(nodeValueSpace);
+                log.info("Saved node: " + savedNode.getNodeSpaceId());
+                savedWorld.addNode(savedNode);
+                worldDao.saveAndFlush(savedWorld);
             });
-            savedWorld.setNodes(Set.copyOf(nodes));
         }
+        log.info("Successfully saved universe: " + universe.getUniverseId() + " with world: " + world.getWorldId());
         return universeDao.saveAndFlush(universe);
     }
 

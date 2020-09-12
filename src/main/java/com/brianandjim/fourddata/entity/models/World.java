@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.HashSet;
 import java.util.Set;
 
 
@@ -40,6 +41,7 @@ public class World {
         this.worldId = Long.parseLong(worldDTO.getWorldId());
         this.description = worldDTO.getDescription();
         this.universe = worldDTO.getUniverse();
+        this.nodes = new HashSet<>();
     }
 
     public void addNode(NodeValueSpace node) {

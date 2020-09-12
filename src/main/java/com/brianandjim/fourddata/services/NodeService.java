@@ -1,8 +1,13 @@
 package com.brianandjim.fourddata.services;
 
-import com.brianandjim.fourddata.entity.dao.*;
-import com.brianandjim.fourddata.entity.dtos.*;
-import com.brianandjim.fourddata.entity.models.*;
+import com.brianandjim.fourddata.entity.dao.NodeValueDao;
+import com.brianandjim.fourddata.entity.dao.NodeValueSpaceDao;
+import com.brianandjim.fourddata.entity.dao.WorldDao;
+import com.brianandjim.fourddata.entity.dtos.NodeValueDTO;
+import com.brianandjim.fourddata.entity.dtos.NodeValueSpaceDTO;
+import com.brianandjim.fourddata.entity.models.NodeValue;
+import com.brianandjim.fourddata.entity.models.NodeValueSpace;
+import com.brianandjim.fourddata.entity.models.World;
 import io.leangen.graphql.annotations.GraphQLArgument;
 import io.leangen.graphql.annotations.GraphQLMutation;
 import io.leangen.graphql.annotations.GraphQLQuery;
@@ -15,7 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -81,7 +89,7 @@ public class NodeService {
         NodeValueSpace space = nodeValueSpaceDao.findByNodeSpaceId(nodeId);
         value.setNodeValueSpace(space);
         NodeValue savedValue = nodeValueDao.saveAndFlush(new NodeValue(processValue(value)));
-        space.getValues().add(savedValue);
+        space.addValue(savedValue);
         notifyDependentNodesOfChange(space);
         try {
             nodeValueSpaceDao.saveAndFlush(space);
