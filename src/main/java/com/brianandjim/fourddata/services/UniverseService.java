@@ -113,18 +113,18 @@ public class UniverseService {
         World world;
         if (ObjectUtils.isEmpty(worldDTO.getWorldId())) {
             log.info("Creating a brand new world...");
-            world = new World();
+            world = new World(worldDTO);
         } else {
             log.info("Editing an already exiting world, worldId: " + worldDTO.getWorldId());
             world = worldDao.findFirstByWorldId(Long.parseLong(worldDTO.getWorldId()));
+            world.setDescription(worldDTO.getDescription());
+            world.setName(worldDTO.getName());
         }
-        world.setDescription(worldDTO.getDescription());
-        world.setName(worldDTO.getName());
-        universe.getWorlds().add(world);
         world.setUniverse(universe);
         World savedWorld = worldDao.saveAndFlush(world);
+        universe.getWorlds().add(savedWorld);
         if (Objects.nonNull(worldDTO.getNodes())) {
-            log.info("The world: " + world.getWorldId() + " has nodes to save.");
+            log.info("The world: " + savedWorld.getWorldId() + " has nodes to save.");
             log.info("The first node to save has a dataType = " + worldDTO.getNodes().get(0).getDataType());
             List<NodeValueSpace> nodes =
                     worldDTO.getNodes().stream().map(nodeValueSpaceDTO -> nodeValueSpaceDao.saveAndFlush(new NodeValueSpace(nodeValueSpaceDTO))).collect(Collectors.toList());

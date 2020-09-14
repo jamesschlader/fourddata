@@ -38,7 +38,7 @@ public class World {
     private Set<NodeValueSpace> nodes;
 
     public World(WorldDTO worldDTO) {
-        this.worldId = Long.parseLong(worldDTO.getWorldId());
+        this.name = worldDTO.getName();
         this.description = worldDTO.getDescription();
         this.universe = worldDTO.getUniverse();
         this.nodes = new HashSet<>();
