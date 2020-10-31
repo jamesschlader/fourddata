@@ -7,9 +7,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.util.StringUtils;
 
 import javax.persistence.*;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 
@@ -25,6 +27,7 @@ public class World {
     @GraphQLQuery
     private Long worldId;
     @GraphQLQuery
+    @Column(unique = true)
     private String name;
     @GraphQLQuery
     private String description;
@@ -42,6 +45,12 @@ public class World {
         this.description = worldDTO.getDescription();
         this.universe = worldDTO.getUniverse();
         this.nodes = new HashSet<>();
+    }
+
+    public World updateWorld(WorldDTO worldDTO){
+        this.name = Objects.nonNull(worldDTO.getName()) ? worldDTO.getName() : this.name;
+        this.description = Objects.nonNull(worldDTO.getDescription()) ? worldDTO.getDescription() : this.description;
+        return this;
     }
 
     public void addNode(NodeValueSpace node) {

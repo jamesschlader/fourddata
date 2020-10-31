@@ -45,4 +45,8 @@ public class Universe {
         this.worlds = new HashSet<>();
         this.user = universeDTO.getUser();
     }
+
+    public void addWorld(World world){
+        this.worlds.add(world);
+    }
 }

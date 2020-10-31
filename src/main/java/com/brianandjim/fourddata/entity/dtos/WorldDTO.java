@@ -14,10 +14,10 @@ import java.util.List;
 @Getter
 @Setter
 public class WorldDTO {
-    private String worldId;
+    private Long worldId;
     private String name;
     private String description;
-    private List<NodeValueSpaceDTO> nodes;
+    private List<NodeValueSpaceDTO> newNodes;
     private Universe universe;
     private Long universeId;
 }

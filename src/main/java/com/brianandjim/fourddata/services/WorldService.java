@@ -1,22 +1,18 @@
 package com.brianandjim.fourddata.services;
 
-import com.brianandjim.fourddata.entity.dao.NodeValueSpaceDao;
-import com.brianandjim.fourddata.entity.dao.UniverseDao;
 import com.brianandjim.fourddata.entity.dao.WorldDao;
 import com.brianandjim.fourddata.entity.dtos.NodeValueSpaceDTO;
 import com.brianandjim.fourddata.entity.dtos.WorldDTO;
 import com.brianandjim.fourddata.entity.models.NodeValueSpace;
 import com.brianandjim.fourddata.entity.models.Universe;
 import com.brianandjim.fourddata.entity.models.World;
-import io.leangen.graphql.annotations.GraphQLArgument;
-import io.leangen.graphql.annotations.GraphQLMutation;
-import io.leangen.graphql.annotations.GraphQLQuery;
 import io.leangen.graphql.spqr.spring.annotations.GraphQLApi;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -29,80 +25,55 @@ import java.util.stream.Collectors;
 public class WorldService {
 
     private final WorldDao worldDao;
-    private final UniverseDao universeDao;
-    private final NodeValueSpaceDao nodeValueSpaceDao;
+    private final NodeService nodeService;
+    private final UniverseService universeService;
 
-
-    public WorldService(WorldDao worldDao, UniverseDao universeDao, NodeValueSpaceDao nodeValueSpaceDao) {
+    public WorldService(WorldDao worldDao, NodeService nodeService, UniverseService universeService) {
         this.worldDao = worldDao;
-        this.universeDao = universeDao;
-        this.nodeValueSpaceDao = nodeValueSpaceDao;
+        this.nodeService = nodeService;
+        this.universeService = universeService;
     }
 
-    @GraphQLQuery(name = "worlds")
-    public List<World> getAllWorlds() {
+    public List<World> findAll() {
         return worldDao.findAll();
     }
 
-    @GraphQLQuery(name = "worldById")
-    public World getOneWorldById(@GraphQLArgument(name = "worldId") Long id) {
-        return worldDao.getOne(id);
+    public World findById(Long id) {
+        return worldDao.findFirstByWorldId(id);
     }
 
-    @GraphQLMutation(name = "saveWorld")
-    public World saveWorld(@GraphQLArgument(name = "newWorld") WorldDTO world) {
-        return worldDao.saveAndFlush(new World(world));
-    }
-
-    @GraphQLMutation
-    public World createWorld(@GraphQLArgument(name = "world") WorldDTO worldDTO) {
-        World newWorld = new World();
-        newWorld.setDescription(worldDTO.getDescription());
-        newWorld.setName(worldDTO.getName());
-        Universe targetUniverse = universeDao.findByUniverseId(worldDTO.getUniverse().getUniverseId());
-        if (Objects.nonNull(targetUniverse)) {
-            newWorld.setUniverse(targetUniverse);
-            targetUniverse.getWorlds().add(newWorld);
+    public World createWorld(Universe universe, WorldDTO worldDTO) {
+        if (StringUtils.isEmpty(worldDTO.getName())) {
+            throw new IllegalArgumentException("Cannot create world without a name.");
         }
-        return worldDao.saveAndFlush(newWorld);
-    }
-
-    @GraphQLMutation
-    public World createWorld(@GraphQLArgument(name = "name") String name,
-                             @GraphQLArgument(name = "description") String description) {
-        World newWorld = new World();
-        newWorld.setName(name);
-        newWorld.setDescription(description);
-        return worldDao.saveAndFlush(newWorld);
-    }
-
-    @GraphQLMutation(name = "addNodeToWorld")
-    public World addNodeToWorld(@GraphQLArgument(name = "worldId") Long worldId,
-                                @GraphQLArgument(name = "node") NodeValueSpaceDTO nodeValueSpaceDTO) {
-        World world = worldDao.findFirstByWorldId(worldId);
-        NodeValueSpace node = new NodeValueSpace(nodeValueSpaceDTO);
-        if (Objects.nonNull(world)) {
-            node.setWorld(world);
-            world.getNodes().add(nodeValueSpaceDao.saveAndFlush(node));
-            return worldDao.saveAndFlush(world);
+        worldDTO.setUniverse(universe);
+        World newWorld = this.saveWorld(new World(worldDTO));
+        if (Objects.nonNull(worldDTO.getNewNodes())) {
+            this.saveNewNodesToWorld(worldDTO.getNewNodes(), newWorld);
         }
-        return new World();
+        return newWorld;
     }
 
-    @GraphQLMutation(name = "editWorld")
-    public World editWorld(@GraphQLArgument(name = "worldDTO") WorldDTO worldDTO) {
-        World existingWorld = worldDao.findFirstByWorldId(Long.parseLong(worldDTO.getWorldId()));
-        existingWorld.setName(worldDTO.getName());
-        existingWorld.setDescription(worldDTO.getDescription());
-        if (Objects.nonNull(worldDTO.getNodes())) {
-            Set<NodeValueSpace> existingNodes = existingWorld.getNodes();
-            Set<NodeValueSpace> incomingNodes =
-                    worldDTO.getNodes().stream().map(NodeValueSpace::new).collect(Collectors.toSet());
-            if (!existingNodes.equals(incomingNodes)) {
-                List<NodeValueSpace> savedNodes = nodeValueSpaceDao.saveAll(incomingNodes);
-                existingWorld.setNodes(new HashSet<>(savedNodes));
-            }
+    public World saveWorld(World worldToSave) {
+        World savedWorld = null;
+        try {
+            savedWorld = worldDao.saveAndFlush(worldToSave);
+        } catch (DataIntegrityViolationException e) {
+            throw new DataIntegrityViolationException("There is already a world with the name: " + worldToSave.getName() + ". Choose another name and try again.");
         }
-        return worldDao.saveAndFlush(existingWorld);
+        return savedWorld;
+    }
+
+    public void saveNewNodesToWorld(List<NodeValueSpaceDTO> nodeValueSpaceDTOS, World world) {
+        Set<NodeValueSpace> nodes = nodeValueSpaceDTOS
+                .stream()
+                .map(node -> {
+                    NodeValueSpace newNode = new NodeValueSpace(node);
+                    newNode.setWorld(world);
+                    return nodeService.saveNode(newNode);
+                })
+                .collect(Collectors.toSet());
+        nodes.forEach(world::addNode);
+        this.saveWorld(world);
     }
 }

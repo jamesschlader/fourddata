@@ -21,16 +21,21 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties("values")
+@Table(indexes = @Index(
+        name = "idx_xid_yid",
+        columnList = "x_id, y_id",
+        unique = true
+))
 public class NodeValueSpace {
     @Id
     @GeneratedValue
     @GraphQLQuery
     private Long nodeSpaceId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "x_id")
     @GraphQLQuery
     private Integer xId;
-    @Column(nullable = false)
+    @Column(nullable = false, name = "y_id")
     @GraphQLQuery
     private Integer yId;
     @GraphQLQuery
@@ -81,6 +86,22 @@ public class NodeValueSpace {
 
     public void addNodeValueSpaceToListeners(NodeValueSpace space) {
         this.listeners.add(space);
+    }
+
+    public NodeValueSpace updateNode(NodeValueSpaceDTO nodeValueSpaceDTO) {
+        this.xId = Objects.nonNull(nodeValueSpaceDTO.getXId()) ? nodeValueSpaceDTO.getXId() : this.xId;
+        this.yId = Objects.nonNull(nodeValueSpaceDTO.getYId()) ? nodeValueSpaceDTO.getYId() : this.yId;
+        this.name = Objects.nonNull(nodeValueSpaceDTO.getName()) ? nodeValueSpaceDTO.getName() : this.name;
+        this.description = Objects.nonNull(nodeValueSpaceDTO.getDescription()) ? nodeValueSpaceDTO.getDescription() :
+                this.description;
+        this.dataType = Objects.nonNull(nodeValueSpaceDTO.getDataType()) ? nodeValueSpaceDTO.getDataType() :
+                this.dataType;
+        this.strategy = Objects.nonNull(nodeValueSpaceDTO.getStrategy()) ? nodeValueSpaceDTO.getStrategy() :
+                this.strategy;
+        this.power = Objects.nonNull(nodeValueSpaceDTO.getPower()) ? nodeValueSpaceDTO.getPower() : this.power;
+        this.watchedSpaces = Objects.nonNull(nodeValueSpaceDTO.getWatchedSpaces()) ?
+                nodeValueSpaceDTO.getWatchedSpaces() : this.watchedSpaces;
+        return this;
     }
 
     public NodeValue getLatestValue() {

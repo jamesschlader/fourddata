@@ -2,19 +2,12 @@ package com.brianandjim.fourddata.services;
 
 import com.brianandjim.fourddata.entity.dao.NodeValueDao;
 import com.brianandjim.fourddata.entity.dao.NodeValueSpaceDao;
-import com.brianandjim.fourddata.entity.dao.WorldDao;
 import com.brianandjim.fourddata.entity.dtos.NodeValueDTO;
-import com.brianandjim.fourddata.entity.dtos.NodeValueSpaceDTO;
 import com.brianandjim.fourddata.entity.models.NodeValue;
 import com.brianandjim.fourddata.entity.models.NodeValueSpace;
-import com.brianandjim.fourddata.entity.models.World;
-import io.leangen.graphql.annotations.GraphQLArgument;
-import io.leangen.graphql.annotations.GraphQLMutation;
-import io.leangen.graphql.annotations.GraphQLQuery;
 import io.leangen.graphql.spqr.spring.annotations.GraphQLApi;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
@@ -34,73 +27,21 @@ public class NodeService {
 
     private final NodeValueSpaceDao nodeValueSpaceDao;
     private final NodeValueDao nodeValueDao;
-    private final WorldDao worldDao;
 
-    public NodeService(NodeValueSpaceDao nodeValueSpaceDao, NodeValueDao nodeValueDao, WorldDao worldDao) {
+    public NodeService(NodeValueSpaceDao nodeValueSpaceDao, NodeValueDao nodeValueDao) {
         this.nodeValueSpaceDao = nodeValueSpaceDao;
         this.nodeValueDao = nodeValueDao;
-        this.worldDao = worldDao;
     }
 
-    @GraphQLQuery(name = "nodes")
-    public List<NodeValueSpace> getAllNodes() {
+    public List<NodeValueSpace> findAll() {
         return nodeValueSpaceDao.findAll();
     }
 
-    @GraphQLQuery(name = "nodeById")
-    public NodeValueSpace getOneNodeById(@GraphQLArgument(name = "nodeId") Long id) {
-        return nodeValueSpaceDao.getOne(id);
+    public NodeValueSpace getById(Long id) {
+        return nodeValueSpaceDao.findByNodeSpaceId(id);
     }
 
-    @GraphQLQuery(name = "getLatestValueForNode")
-    @Cacheable(value = "latestValues", key = "#nodeId")
-    public NodeValue getLatestValueForNode(@GraphQLArgument(name = "nodeId") Long nodeId) {
-        NodeValueSpace nodeValueSpace = nodeValueSpaceDao.findByNodeSpaceId(nodeId);
-        if (Objects.nonNull(nodeValueSpace)) {
-            return nodeValueSpace.getLatestValue();
-        }
-        return null;
-    }
-
-    @GraphQLMutation(name = "saveNode")
-    public NodeValueSpace saveNode(@GraphQLArgument(name = "newNode") NodeValueSpaceDTO nodeValueSpaceDTO) {
-        World world = worldDao.findFirstByWorldId(nodeValueSpaceDTO.getWorldId());
-        NodeValueSpace newSpace = new NodeValueSpace(nodeValueSpaceDTO);
-        newSpace.setWorld(world);
-        return nodeValueSpaceDao.saveAndFlush(newSpace);
-    }
-
-    @GraphQLMutation(name = "updateNode")
-    public NodeValueSpace updateNode(@GraphQLArgument(name = "node") NodeValueSpaceDTO nodeValueSpaceDTO) {
-        NodeValueSpace existingNode = nodeValueSpaceDao.findByNodeSpaceId(nodeValueSpaceDTO.getNodeSpaceId());
-        if (Objects.nonNull(nodeValueSpaceDTO.getDescription())) {
-            existingNode.setName(nodeValueSpaceDTO.getName());
-        }
-        if (Objects.nonNull(nodeValueSpaceDTO.getDescription())) {
-            existingNode.setDescription(nodeValueSpaceDTO.getDescription());
-        }
-        return nodeValueSpaceDao.saveAndFlush(existingNode);
-    }
-
-    @GraphQLMutation(name = "addValueToNode")
-    @CachePut(value = "latestValues", key = "#nodeId")
-    public NodeValue addValueToNode(@GraphQLArgument(name = "nodeId") Long nodeId, @GraphQLArgument(name =
-            "value") NodeValueDTO value) {
-        NodeValueSpace space = nodeValueSpaceDao.findByNodeSpaceId(nodeId);
-        value.setNodeValueSpace(space);
-        NodeValue savedValue = nodeValueDao.saveAndFlush(new NodeValue(processValue(value)));
-        space.addValue(savedValue);
-        notifyDependentNodesOfChange(space);
-        try {
-            nodeValueSpaceDao.saveAndFlush(space);
-        } catch (UnsupportedOperationException e) {
-            log.error("Trouble saving to " + space.getNodeSpaceId());
-            log.error(e.getMessage());
-        }
-        return savedValue;
-    }
-
-    private NodeValueDTO processValue(NodeValueDTO nodeValueToProcess) {
+    public NodeValueDTO processValue(NodeValueDTO nodeValueToProcess) {
         if (StringUtils.isEmpty(nodeValueToProcess.getValue())) {
             List<NodeValueSpace> spaces =
                     nodeValueSpaceDao.findAllByNodeSpaceIdIn(nodeValueToProcess.getNodeValuesSpacesToReduce());
@@ -112,12 +53,10 @@ public class NodeService {
                     reducedValue.toString(), nodeValueToProcess.getOperator(), nodeValueToProcess.getPower(),
                     nodeValueToProcess.getNodeValuesSpacesToReduce());
         }
-        return new NodeValueDTO(nodeValueToProcess.getNodeValueId(), nodeValueToProcess.getNodeValueSpace(),
-                nodeValueToProcess.getValue(), nodeValueToProcess.getOperator(), nodeValueToProcess.getPower(),
-                nodeValueToProcess.getNodeValuesSpacesToReduce());
+        return nodeValueToProcess;
     }
 
-    private Double reduceValuesBasedOnOperator(NodeValueDTO nodeValueToProcess, List<Double> valuesToReduce) {
+    public Double reduceValuesBasedOnOperator(NodeValueDTO nodeValueToProcess, List<Double> valuesToReduce) {
         String operator = nodeValueToProcess.getOperator();
         if (ObjectUtils.isEmpty(valuesToReduce)) {
             return 0D;
@@ -146,7 +85,7 @@ public class NodeService {
         return 0.0;
     }
 
-    private List<Double> getLatestDoublesToReduce(List<NodeValueSpace> spaces) {
+    public List<Double> getLatestDoublesToReduce(List<NodeValueSpace> spaces) {
         return spaces
                 .stream()
                 .map(NodeValueSpace::getLatestValue)
@@ -155,7 +94,7 @@ public class NodeService {
                 .collect(Collectors.toList());
     }
 
-    private void notifyDependentNodesOfChange(NodeValueSpace space) {
+    public void notifyDependentNodesOfChange(NodeValueSpace space) {
         int counter = 0;
         List<NodeValueSpace> listeners = new ArrayList<>(space.getListeners());
         while (counter < space.getListeners().size()) {
@@ -165,5 +104,34 @@ public class NodeService {
                     currentSpace.getWatchedSpaces().stream().map(NodeValueSpace::getNodeSpaceId).collect(Collectors.toList())));
             counter++;
         }
+    }
+
+    public NodeValue addValueToNode(Long nodeId, NodeValueDTO value) {
+        NodeValueSpace space = this.getById(nodeId);
+        if (Objects.isNull(space)) {
+            throw new IllegalArgumentException("The node value space for nodeId: " + nodeId + " doesn't exist.");
+        }
+        value.setNodeValueSpace(space);
+        NodeValue savedValue = nodeValueDao.saveAndFlush(new NodeValue(this.processValue(value)));
+        space.addValue(savedValue);
+        this.notifyDependentNodesOfChange(space);
+        try {
+            this.saveNode(space);
+        } catch (UnsupportedOperationException e) {
+            log.error("Trouble saving to " + space.getNodeSpaceId());
+            log.error(e.getMessage());
+        }
+        return savedValue;
+    }
+
+    public NodeValueSpace saveNode(NodeValueSpace nodeValueSpace) {
+        NodeValueSpace savedSpace = null;
+        try {
+            savedSpace = nodeValueSpaceDao.saveAndFlush(nodeValueSpace);
+        } catch (DataIntegrityViolationException e) {
+            throw new DataIntegrityViolationException("The combination of XId and YId you submitted is already in use" +
+                    " by another node. The combination must be unique.");
+        }
+        return savedSpace;
     }
 }

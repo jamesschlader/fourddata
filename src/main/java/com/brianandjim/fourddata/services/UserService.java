@@ -20,6 +20,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
@@ -81,5 +83,15 @@ public class UserService {
         final FourDDataUserPrincipal userDetails = fourDDataUserDetailsService.loadUserByUsername(username);
         FourDDataUserDTO fourDDataUserDTO = new FourDDataUserDTO(userDetails);
         return jwtUtil.generateToken(fourDDataUserDTO);
+    }
+
+    public FourDDUser getCurrentUser() {
+        SecurityContext context = SecurityContextHolder.getContext();
+        FourDDataUserPrincipal fourDDUser = (FourDDataUserPrincipal) context.getAuthentication().getPrincipal();
+        return fourDDataUserDAO.findFirstByUsername(fourDDUser.getUsername());
+    }
+
+    public FourDDUser saveUser(FourDDUser user){
+        return fourDDataUserDAO.saveAndFlush(user);
     }
 }
