@@ -42,6 +42,7 @@ public class NodeValue {
         this.createDate = new Timestamp(System.currentTimeMillis());
         try{
             this.doubleValue = Double.parseDouble(nodeValueDTO.getValue());
+            this.stringValue = nodeValueDTO.getValue();
         } catch (NumberFormatException e){
             this.stringValue = nodeValueDTO.getValue();
     }

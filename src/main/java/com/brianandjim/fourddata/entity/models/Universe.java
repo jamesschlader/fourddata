@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.util.StringUtils;
 
 import javax.persistence.*;
 import java.util.HashSet;
@@ -44,6 +45,13 @@ public class Universe {
         this.description = universeDTO.getDescription();
         this.worlds = new HashSet<>();
         this.user = universeDTO.getUser();
+    }
+
+    public Universe editUniverse(UniverseDTO universeDTO){
+        this.name = !StringUtils.isEmpty(universeDTO.getName()) ? universeDTO.getName() : this.name;
+        this.description = !StringUtils.isEmpty(universeDTO.getDescription()) ? universeDTO.getDescription() :
+                this.description;
+        return this;
     }
 
     public void addWorld(World world){

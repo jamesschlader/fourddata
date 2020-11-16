@@ -20,9 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @GraphQLApi
@@ -65,6 +63,11 @@ public class GraphQLService {
     @GraphQLMutation(name = "createUniverse")
     public Universe createUniverse(@GraphQLArgument(name = "universe") UniverseDTO universeDTO) {
         return universeService.create(universeDTO);
+    }
+
+    @GraphQLMutation(name = "editUniverse")
+    public Universe editUniverse(@GraphQLArgument(name = "universe") UniverseDTO universeDTO){
+        return universeService.editUniverse(universeDTO);
     }
 
     @GraphQLMutation(name = "addWorldToUniverse", description = "Add an existing world to an existing universe.")
@@ -142,7 +145,7 @@ public class GraphQLService {
                                 @GraphQLArgument(name = "node") NodeValueSpaceDTO nodeValueSpaceDTO) {
         World world = worldService.findById(worldId);
         if (Objects.isNull(world)) {
-            throw new IllegalArgumentException("No world exists associated with worldId: " + worldId);
+            throw new IllegalStateException("No world exists associated with worldId: " + worldId);
         }
         NodeValueSpace node = nodeService.saveNode(new NodeValueSpace(nodeValueSpaceDTO));
         node.setWorld(world);
@@ -173,6 +176,21 @@ public class GraphQLService {
         return nodeService.getById(id);
     }
 
+    @GraphQLQuery(name="getNodesByXID")
+    public Set<NodeValueSpace> getNodesByXID(Long worldId, Integer xId){
+        return nodeService.getNodesByXID(worldId, xId);
+    }
+
+    @GraphQLQuery(name="getNodesByYID")
+    public Set<NodeValueSpace> getNodesByYID(Long worldId, Integer yId){
+        return nodeService.getNodesByYID(worldId, yId);
+    }
+
+    @GraphQLQuery(name = "getNodeByCoordinates")
+    public NodeValueSpace getNodeByCoordinates(Long worldId, Integer xId, Integer yId){
+        return nodeService.getNodeByCoordinates(worldId, xId, yId);
+    }
+
     @GraphQLQuery(name = "getLatestValueForNode")
     @Cacheable(value = "latestValues", key = "#nodeId")
     public NodeValue getLatestValueForNode(@GraphQLArgument(name = "nodeId") Long nodeId) {
@@ -183,9 +201,13 @@ public class GraphQLService {
         return null;
     }
 
-    @GraphQLMutation(name = "updateNode")
+    @GraphQLMutation(name = "updateNode", description = "Updates an already existing node.")
     public NodeValueSpace updateNode(@GraphQLArgument(name = "node") NodeValueSpaceDTO nodeValueSpaceDTO) {
         NodeValueSpace existingNode = this.getOneNodeById(nodeValueSpaceDTO.getNodeSpaceId());
+        if (Objects.isNull(existingNode)){
+            throw new IllegalStateException("No node exists for nodeSpaceId: " + nodeValueSpaceDTO.getNodeSpaceId() +
+                    ". Cannot update. Use addNodeToWorld method instead to add the node first.");
+        }
         existingNode.updateNode(nodeValueSpaceDTO);
         return nodeService.saveNode(existingNode);
     }

@@ -9,10 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Entity
@@ -104,9 +101,15 @@ public class NodeValueSpace {
         return this;
     }
 
+    @GraphQLQuery(name = "value", description = "the most recently assigned value")
     public NodeValue getLatestValue() {
-        return this.values.stream().sorted(Comparator.comparing(NodeValue::getCreateDate).reversed())
-                .collect(Collectors.toList()).get(0);
+        List<NodeValue> sortedValueList =
+                this.values.stream().sorted(Comparator.comparing(NodeValue::getCreateDate).reversed())
+                .collect(Collectors.toList());
+        if (!sortedValueList.isEmpty()){
+            return sortedValueList.get(0);
+        }
+        return null;
     }
 
     public void addValue(NodeValue nodeValue) {

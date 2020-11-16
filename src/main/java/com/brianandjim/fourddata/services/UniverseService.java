@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @GraphQLApi
@@ -58,5 +59,16 @@ public class UniverseService {
         user.addUniverse(savedUniverse);
         userService.saveUser(user);
         return savedUniverse;
+    }
+
+    public Universe editUniverse(UniverseDTO universeDTO) {
+        Universe existingUniverse = universeDao.findByUniverseId(universeDTO.getUniverseId());
+        if(Objects.isNull(existingUniverse)){
+            log.error("Failed to edit universe: " + universeDTO.getUniverseId() + " because it doesn't exit.");
+            throw new IllegalStateException("No universe exists for universeId: " + universeDTO.getUniverseId());
+        }
+        log.info("Updating universe: " + existingUniverse.getUniverseId() + " name = " + universeDTO.getName() + " and " +
+                "description = " + universeDTO.getDescription());
+        return universeDao.saveAndFlush(existingUniverse.editUniverse(universeDTO));
     }
 }

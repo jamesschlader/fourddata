@@ -134,4 +134,16 @@ public class NodeService {
         }
         return savedSpace;
     }
+
+    public Set<NodeValueSpace> getNodesByYID(Long worldId, Integer xId) {
+        return nodeValueSpaceDao.findAllByWorldAndXId(worldId, xId);
+    }
+
+    public Set<NodeValueSpace> getNodesByXID(Long worldId, Integer yId) {
+        return nodeValueSpaceDao.findAllByWorldAndYId(worldId, yId);
+    }
+
+    public NodeValueSpace getNodeByCoordinates(Long worldId, Integer xId, Integer yId) {
+        return nodeValueSpaceDao.findFirstByWorldAndXIdAndYId(worldId, xId, yId);
+    }
 }
