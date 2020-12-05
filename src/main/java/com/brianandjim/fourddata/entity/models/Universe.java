@@ -57,4 +57,8 @@ public class Universe {
     public void addWorld(World world){
         this.worlds.add(world);
     }
+
+    public void removeWorld(World world){
+        this.worlds.remove(world);
+    }
 }

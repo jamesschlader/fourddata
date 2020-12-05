@@ -19,14 +19,15 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @JsonIgnoreProperties("values")
 @Table(indexes = @Index(
-        name = "idx_xid_yid",
-        columnList = "x_id, y_id",
+        name = "idx_world_id_xid_yid",
+        columnList = "world_id, x_id, y_id",
         unique = true
 ))
 public class NodeValueSpace {
     @Id
     @GeneratedValue
     @GraphQLQuery
+    @Column(nullable = false, name = "node_space_id")
     private Long nodeSpaceId;
 
     @Column(nullable = false, name = "x_id")
@@ -35,10 +36,6 @@ public class NodeValueSpace {
     @Column(nullable = false, name = "y_id")
     @GraphQLQuery
     private Integer yId;
-    @GraphQLQuery
-    private String name;
-    @GraphQLQuery
-    private String description;
 
     @ManyToOne
     @JoinColumn(name = "world_id")
@@ -73,8 +70,6 @@ public class NodeValueSpace {
         this.listeners = new HashSet<>();
         this.watchedSpaces = Objects.nonNull(nodeValueSpaceDTO.getWatchedSpaces()) ? nodeValueSpaceDTO.getWatchedSpaces() :
                 new HashSet<>();
-        this.name = nodeValueSpaceDTO.getName();
-        this.description = nodeValueSpaceDTO.getDescription();
         this.strategy = nodeValueSpaceDTO.getStrategy();
         this.power = nodeValueSpaceDTO.getPower();
         this.dataType = nodeValueSpaceDTO.getDataType();
@@ -88,9 +83,6 @@ public class NodeValueSpace {
     public NodeValueSpace updateNode(NodeValueSpaceDTO nodeValueSpaceDTO) {
         this.xId = Objects.nonNull(nodeValueSpaceDTO.getXId()) ? nodeValueSpaceDTO.getXId() : this.xId;
         this.yId = Objects.nonNull(nodeValueSpaceDTO.getYId()) ? nodeValueSpaceDTO.getYId() : this.yId;
-        this.name = Objects.nonNull(nodeValueSpaceDTO.getName()) ? nodeValueSpaceDTO.getName() : this.name;
-        this.description = Objects.nonNull(nodeValueSpaceDTO.getDescription()) ? nodeValueSpaceDTO.getDescription() :
-                this.description;
         this.dataType = Objects.nonNull(nodeValueSpaceDTO.getDataType()) ? nodeValueSpaceDTO.getDataType() :
                 this.dataType;
         this.strategy = Objects.nonNull(nodeValueSpaceDTO.getStrategy()) ? nodeValueSpaceDTO.getStrategy() :
@@ -117,4 +109,8 @@ public class NodeValueSpace {
         this.values.add(nodeValue);
     }
 
+    @Override
+    public String toString() {
+        return "{xId: " + this.xId + ", yId: " + this.yId + "}";
+    }
 }

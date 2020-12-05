@@ -26,12 +26,10 @@ public class WorldService {
 
     private final WorldDao worldDao;
     private final NodeService nodeService;
-    private final UniverseService universeService;
 
-    public WorldService(WorldDao worldDao, NodeService nodeService, UniverseService universeService) {
+    public WorldService(WorldDao worldDao, NodeService nodeService) {
         this.worldDao = worldDao;
         this.nodeService = nodeService;
-        this.universeService = universeService;
     }
 
     public List<World> findAll() {
@@ -40,6 +38,11 @@ public class WorldService {
 
     public World findById(Long id) {
         return worldDao.findFirstByWorldId(id);
+    }
+
+    public void deleteWorld(World world){
+        log.info("Deleting world: " + world.getName());
+        worldDao.delete(world);
     }
 
     public World createWorld(Universe universe, WorldDTO worldDTO) {
@@ -57,6 +60,7 @@ public class WorldService {
     public World saveWorld(World worldToSave) {
         World savedWorld = null;
         try {
+            log.info("Saving world: " + worldToSave.toString());
             savedWorld = worldDao.saveAndFlush(worldToSave);
         } catch (DataIntegrityViolationException e) {
             throw new DataIntegrityViolationException("There is already a world with the name: " + worldToSave.getName() + ". Choose another name and try again.");

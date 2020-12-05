@@ -2,6 +2,7 @@ package com.brianandjim.fourddata.services;
 
 import com.brianandjim.fourddata.entity.dao.UniverseDao;
 import com.brianandjim.fourddata.entity.dtos.UniverseDTO;
+import com.brianandjim.fourddata.entity.dtos.WorldDTO;
 import com.brianandjim.fourddata.entity.models.*;
 import io.leangen.graphql.spqr.spring.annotations.GraphQLApi;
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +22,12 @@ public class UniverseService {
 
     private final UniverseDao universeDao;
     private final UserService userService;
+    private final WorldService worldService;
 
-    public UniverseService(UniverseDao universeDao, UserService userService) {
+    public UniverseService(UniverseDao universeDao, UserService userService, WorldService worldService) {
         this.universeDao = universeDao;
         this.userService = userService;
+        this.worldService = worldService;
     }
 
     public List<Universe> findAll() {
@@ -63,12 +66,33 @@ public class UniverseService {
 
     public Universe editUniverse(UniverseDTO universeDTO) {
         Universe existingUniverse = universeDao.findByUniverseId(universeDTO.getUniverseId());
-        if(Objects.isNull(existingUniverse)){
+        if (Objects.isNull(existingUniverse)) {
             log.error("Failed to edit universe: " + universeDTO.getUniverseId() + " because it doesn't exit.");
             throw new IllegalStateException("No universe exists for universeId: " + universeDTO.getUniverseId());
         }
         log.info("Updating universe: " + existingUniverse.getUniverseId() + " name = " + universeDTO.getName() + " and " +
                 "description = " + universeDTO.getDescription());
         return universeDao.saveAndFlush(existingUniverse.editUniverse(universeDTO));
+    }
+
+    public Universe deleteUniverse(Long universeId) {
+        Universe existingUniverse = findById(universeId);
+        if (Objects.nonNull(existingUniverse)) {
+            log.info("Staring deletion process for universeId: " + universeId);
+            existingUniverse.getWorlds().forEach(worldService::deleteWorld);
+            existingUniverse.setWorlds(null);
+            universeDao.delete(existingUniverse);
+            log.info("Successfully deleted universeId: " + universeId);
+        }
+        return existingUniverse;
+    }
+
+    public Universe deleteWorld(Long worldId) {
+        World existingWorld = worldService.findById(worldId);
+        Universe existingUniverse = findById(existingWorld.getUniverse().getUniverseId());
+        log.info("Removing world " + existingWorld.getName() + " from universe " + existingUniverse.getName());
+        existingUniverse.removeWorld(existingWorld);
+        worldService.deleteWorld(existingWorld);
+        return existingUniverse;
     }
 }

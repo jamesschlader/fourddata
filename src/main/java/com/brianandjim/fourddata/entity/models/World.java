@@ -56,4 +56,12 @@ public class World {
     public void addNode(NodeValueSpace node) {
         this.nodes.add(node);
     }
+
+    @Override
+    public String toString() {
+        StringBuilder nodeString = new StringBuilder();
+        this.nodes.forEach(node -> nodeString.append(node.toString()));
+        return "worldId: " + this.worldId + ", name: " + this.name + ", description: " + this.description
+                + ", nodes: [ " + nodeString.toString() + " ]";
+    }
 }

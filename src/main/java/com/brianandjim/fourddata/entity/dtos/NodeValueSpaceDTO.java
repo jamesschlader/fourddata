@@ -18,8 +18,6 @@ public class NodeValueSpaceDTO {
     private Integer xId;
     private Integer yId;
     private Long worldId;
-    private String name;
-    private String description;
     private String dataType;
     private Set<NodeValueSpace> watchedSpaces;
     private String strategy;
