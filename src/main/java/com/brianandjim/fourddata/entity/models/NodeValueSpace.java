@@ -42,7 +42,7 @@ public class NodeValueSpace {
     @GraphQLQuery
     private World world;
 
-    @OneToMany(mappedBy = "nodeValueSpace")
+    @OneToMany(mappedBy = "nodeValueSpace", cascade = CascadeType.ALL)
     @GraphQLQuery(name = "values")
     private Set<NodeValue> values;
 
@@ -101,7 +101,7 @@ public class NodeValueSpace {
         if (!sortedValueList.isEmpty()){
             return sortedValueList.get(0);
         }
-        return null;
+        return new NodeValue(null, "", null, null, this);
     }
 
     public void addValue(NodeValue nodeValue) {

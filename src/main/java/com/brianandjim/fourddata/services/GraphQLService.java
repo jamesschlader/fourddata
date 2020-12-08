@@ -1,6 +1,5 @@
 package com.brianandjim.fourddata.services;
 
-import com.brianandjim.fourddata.entity.dao.NodeValueDao;
 import com.brianandjim.fourddata.entity.dtos.NodeValueDTO;
 import com.brianandjim.fourddata.entity.dtos.NodeValueSpaceDTO;
 import com.brianandjim.fourddata.entity.dtos.UniverseDTO;
@@ -16,9 +15,9 @@ import io.leangen.graphql.spqr.spring.annotations.GraphQLApi;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.util.*;
 
@@ -152,14 +151,36 @@ public class GraphQLService {
 
     @GraphQLMutation(name = "addNodeToWorld", description = "Adds a new node to an existing world.")
     public World addNodeToWorld(@GraphQLArgument(name = "node") NodeValueSpaceDTO nodeValueSpaceDTO) {
+        log.info("Adding node at XId: " + nodeValueSpaceDTO.getXId() + ", YId: " + nodeValueSpaceDTO.getYId() + " to " +
+                "worldId: " + nodeValueSpaceDTO.getWorldId());
         World world = worldService.findById(nodeValueSpaceDTO.getWorldId());
         if (Objects.isNull(world)) {
             throw new IllegalStateException("No world exists associated with worldId: " + nodeValueSpaceDTO.getWorldId());
         }
-        NodeValueSpace node = nodeService.saveNode(new NodeValueSpace(nodeValueSpaceDTO));
-        node.setWorld(world);
-        world.addNode(nodeService.saveNode(node));
+        try {
+            NodeValueSpace node = nodeService.saveNode(new NodeValueSpace(nodeValueSpaceDTO));
+            node.setWorld(world);
+            world.addNode(nodeService.saveNode(node));
+        } catch (DataIntegrityViolationException e) {
+            log.error("Apparently, cannot save node because " + e.getMessage());
+        }
         return worldService.saveWorld(world);
+    }
+
+    @GraphQLMutation(name = "addManyNodesToWorld", description = "Adds a list of nodes to a single world in one go.")
+    public World addManyNodesToWorld(@GraphQLArgument(name = "nodes") List<NodeValueSpaceDTO> nodeValueSpaceDTOS){
+        log.info("Adding node at XId: " + nodeValueSpaceDTOS.get(0).getXId() + ", YId: " + nodeValueSpaceDTOS.get(0).getYId() +
+                " to worldId: " + nodeValueSpaceDTOS.get(0).getWorldId());
+        World world = worldService.findById(nodeValueSpaceDTOS.get(0).getWorldId());
+        if (Objects.isNull(world)) {
+            throw new IllegalStateException("No world exists associated with worldId: " + nodeValueSpaceDTOS.get(0).getWorldId());
+        }
+        try {
+            worldService.saveNewNodesToWorld(nodeValueSpaceDTOS, world);
+        } catch (DataIntegrityViolationException e){
+            log.error("Apparently, cannot save node because " + e.getMessage());
+        }
+        return world;
     }
 
     @GraphQLMutation(name = "editWorld")
@@ -183,6 +204,11 @@ public class GraphQLService {
     @GraphQLQuery(name = "nodeById")
     public NodeValueSpace getOneNodeById(@GraphQLArgument(name = "nodeId") Long id) {
         return nodeService.getById(id);
+    }
+
+    @GraphQLQuery(name = "getAllNodesByWorldId")
+    public Set<NodeValueSpace> getAllNodesByWorldId(@GraphQLArgument(name = "worldId") Long worldId) {
+        return nodeService.getAllNodesByWorldId(worldId);
     }
 
     @GraphQLQuery(name = "getNodesByXID")
@@ -226,5 +252,10 @@ public class GraphQLService {
     public NodeValue addValueToNode(@GraphQLArgument(name = "nodeId") Long nodeId, @GraphQLArgument(name =
             "value") NodeValueDTO value) {
         return nodeService.addValueToNode(nodeId, value);
+    }
+
+    @GraphQLMutation(name = "nodeDelete")
+    public World deleteNodeFromWorld(@GraphQLArgument(name = "node") NodeValueSpaceDTO nodeValueSpaceDTO) {
+        return worldService.deleteNodeFromWorld(nodeValueSpaceDTO);
     }
 }

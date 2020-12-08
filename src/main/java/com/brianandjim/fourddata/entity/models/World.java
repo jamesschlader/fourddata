@@ -37,7 +37,7 @@ public class World {
     private Universe universe;
 
     @GraphQLQuery(name = "nodes")
-    @OneToMany(mappedBy = "world")
+    @OneToMany(mappedBy = "world", cascade = CascadeType.ALL)
     private Set<NodeValueSpace> nodes;
 
     public World(WorldDTO worldDTO) {
@@ -47,7 +47,7 @@ public class World {
         this.nodes = new HashSet<>();
     }
 
-    public World updateWorld(WorldDTO worldDTO){
+    public World updateWorld(WorldDTO worldDTO) {
         this.name = Objects.nonNull(worldDTO.getName()) ? worldDTO.getName() : this.name;
         this.description = Objects.nonNull(worldDTO.getDescription()) ? worldDTO.getDescription() : this.description;
         return this;
@@ -57,10 +57,15 @@ public class World {
         this.nodes.add(node);
     }
 
+    public void removeNode(NodeValueSpace node) {
+        this.nodes.remove(node);
+    }
+
     @Override
     public String toString() {
         StringBuilder nodeString = new StringBuilder();
-        this.nodes.forEach(node -> nodeString.append(node.toString()));
+        this.nodes.forEach(node -> nodeString.append(node.toString() + ", "));
+        nodeString.deleteCharAt(nodeString.lastIndexOf(","));
         return "worldId: " + this.worldId + ", name: " + this.name + ", description: " + this.description
                 + ", nodes: [ " + nodeString.toString() + " ]";
     }

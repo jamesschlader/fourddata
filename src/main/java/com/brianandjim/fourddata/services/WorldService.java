@@ -80,4 +80,15 @@ public class WorldService {
         nodes.forEach(world::addNode);
         this.saveWorld(world);
     }
+
+    public World deleteNodeFromWorld(NodeValueSpaceDTO nodeValueSpaceDTO) {
+        World world = findById(nodeValueSpaceDTO.getWorldId());
+        if(Objects.nonNull(world)){
+            NodeValueSpace nodeToDelete = nodeService.getById(nodeValueSpaceDTO.getNodeSpaceId());
+            world.removeNode(nodeToDelete);
+            world = this.saveWorld(world);
+            nodeService.deleteNode(nodeToDelete);
+        }
+        return world;
+    }
 }

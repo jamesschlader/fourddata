@@ -1,9 +1,7 @@
 package com.brianandjim.fourddata.entity.models;
 
-import com.brianandjim.fourddata.entity.dao.FourDDataUserDAO;
 import com.brianandjim.fourddata.entity.dtos.UniverseDTO;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import io.leangen.graphql.annotations.GraphQLMutation;
 import io.leangen.graphql.annotations.GraphQLQuery;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -32,7 +30,7 @@ public class Universe {
     @GraphQLQuery(name = "description")
     private String description;
     @GraphQLQuery(name = "worlds")
-    @OneToMany(mappedBy = "universe")
+    @OneToMany(mappedBy = "universe", cascade = CascadeType.ALL)
     private Set<World> worlds;
     @GraphQLQuery(name = "user")
     @ManyToOne

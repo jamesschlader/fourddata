@@ -24,4 +24,6 @@ public interface NodeValueSpaceDao extends JpaRepository<NodeValueSpace, Long> {
     @Query(value = "SELECT * FROM NODE_VALUE_SPACE WHERE world_id = :worldId AND x_id = :xId AND y_id = :yId",
             nativeQuery = true)
     NodeValueSpace findFirstByWorldAndXIdAndYId(@Param("worldId") Long worldId, @Param("xId") Integer xId, @Param("yId") Integer yId);
+
+
 }

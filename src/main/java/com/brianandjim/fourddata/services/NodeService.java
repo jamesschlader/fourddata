@@ -5,8 +5,10 @@ import com.brianandjim.fourddata.entity.dao.NodeValueSpaceDao;
 import com.brianandjim.fourddata.entity.dtos.NodeValueDTO;
 import com.brianandjim.fourddata.entity.models.NodeValue;
 import com.brianandjim.fourddata.entity.models.NodeValueSpace;
+import com.brianandjim.fourddata.entity.models.World;
 import io.leangen.graphql.spqr.spring.annotations.GraphQLApi;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -27,10 +29,13 @@ public class NodeService {
 
     private final NodeValueSpaceDao nodeValueSpaceDao;
     private final NodeValueDao nodeValueDao;
+    private final WorldService worldService;
 
-    public NodeService(NodeValueSpaceDao nodeValueSpaceDao, NodeValueDao nodeValueDao) {
+    public NodeService(NodeValueSpaceDao nodeValueSpaceDao, NodeValueDao nodeValueDao,
+                       @Lazy WorldService worldService) {
         this.nodeValueSpaceDao = nodeValueSpaceDao;
         this.nodeValueDao = nodeValueDao;
+        this.worldService = worldService;
     }
 
     public List<NodeValueSpace> findAll() {
@@ -39,6 +44,15 @@ public class NodeService {
 
     public NodeValueSpace getById(Long id) {
         return nodeValueSpaceDao.findByNodeSpaceId(id);
+    }
+
+    public NodeValue saveNodeValue(NodeValueDTO nodeValueDTO){
+        return nodeValueDao.saveAndFlush(new NodeValue(nodeValueDTO));
+    }
+
+    public void deleteNode(NodeValueSpace nodeValueSpace){
+        log.info("Going to delete node: " + nodeValueSpace.getNodeSpaceId());
+        nodeValueSpaceDao.delete(nodeValueSpace);
     }
 
     public NodeValueDTO processValue(NodeValueDTO nodeValueToProcess) {
@@ -113,10 +127,12 @@ public class NodeService {
         }
         value.setNodeValueSpace(space);
         NodeValue savedValue = nodeValueDao.saveAndFlush(new NodeValue(this.processValue(value)));
+        log.info("Saved new value: " + savedValue.getNodeValueId() + " to nodeSpace: " + space.getNodeSpaceId());
         space.addValue(savedValue);
         this.notifyDependentNodesOfChange(space);
         try {
             this.saveNode(space);
+            log.info("saved nodeSpace: " + space.getNodeSpaceId() + " and notified all dependents of change.");
         } catch (UnsupportedOperationException e) {
             log.error("Trouble saving to " + space.getNodeSpaceId());
             log.error(e.getMessage());
@@ -129,7 +145,7 @@ public class NodeService {
         try {
             savedSpace = nodeValueSpaceDao.saveAndFlush(nodeValueSpace);
         } catch (DataIntegrityViolationException e) {
-            throw new DataIntegrityViolationException("The combination of XId and YId you submitted is already in use" +
+            log.error("The combination of XId and YId you submitted is already in use" +
                     " by another node. The combination must be unique.");
         }
         return savedSpace;
@@ -145,5 +161,13 @@ public class NodeService {
 
     public NodeValueSpace getNodeByCoordinates(Long worldId, Integer xId, Integer yId) {
         return nodeValueSpaceDao.findFirstByWorldAndXIdAndYId(worldId, xId, yId);
+    }
+
+    public Set<NodeValueSpace> getAllNodesByWorldId(Long worldId) {
+        World existingWorld = worldService.findById(worldId);
+        if(Objects.nonNull(existingWorld)){
+            return existingWorld.getNodes();
+        }
+        return Set.of();
     }
 }
