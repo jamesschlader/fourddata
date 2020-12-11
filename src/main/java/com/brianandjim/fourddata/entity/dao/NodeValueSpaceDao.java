@@ -25,5 +25,4 @@ public interface NodeValueSpaceDao extends JpaRepository<NodeValueSpace, Long> {
             nativeQuery = true)
     NodeValueSpace findFirstByWorldAndXIdAndYId(@Param("worldId") Long worldId, @Param("xId") Integer xId, @Param("yId") Integer yId);
 
-
 }

@@ -46,22 +46,24 @@ public class NodeService {
         return nodeValueSpaceDao.findByNodeSpaceId(id);
     }
 
-    public NodeValue saveNodeValue(NodeValueDTO nodeValueDTO){
+    public NodeValue saveNodeValue(NodeValueDTO nodeValueDTO) {
         return nodeValueDao.saveAndFlush(new NodeValue(nodeValueDTO));
     }
 
-    public void deleteNode(NodeValueSpace nodeValueSpace){
+    public void deleteNode(NodeValueSpace nodeValueSpace) {
         log.info("Going to delete node: " + nodeValueSpace.getNodeSpaceId());
         nodeValueSpaceDao.delete(nodeValueSpace);
     }
 
     public NodeValueDTO processValue(NodeValueDTO nodeValueToProcess) {
-        if (StringUtils.isEmpty(nodeValueToProcess.getValue())) {
+        if (Objects.nonNull(nodeValueToProcess.getOperator())) {
             List<NodeValueSpace> spaces =
                     nodeValueSpaceDao.findAllByNodeSpaceIdIn(nodeValueToProcess.getNodeValuesSpacesToReduce());
             Double reducedValue = reduceValuesBasedOnOperator(nodeValueToProcess, getLatestDoublesToReduce(spaces));
-            spaces.forEach(space -> space.addNodeValueSpaceToListeners(nodeValueToProcess.getNodeValueSpace()));
-            nodeValueToProcess.getNodeValueSpace().setWatchedSpaces(Set.copyOf(spaces));
+            if (!ObjectUtils.isEmpty(spaces)) {
+                spaces.forEach(space -> space.addNodeValueSpaceToListeners(nodeValueToProcess.getNodeValueSpace()));
+                nodeValueToProcess.getNodeValueSpace().setWatchedSpaces(Set.copyOf(spaces));
+            }
             nodeValueToProcess.getNodeValueSpace().setStrategy(nodeValueToProcess.getOperator());
             return new NodeValueDTO(nodeValueToProcess.getNodeValueId(), nodeValueToProcess.getNodeValueSpace(),
                     reducedValue.toString(), nodeValueToProcess.getOperator(), nodeValueToProcess.getPower(),
@@ -73,7 +75,11 @@ public class NodeService {
     public Double reduceValuesBasedOnOperator(NodeValueDTO nodeValueToProcess, List<Double> valuesToReduce) {
         String operator = nodeValueToProcess.getOperator();
         if (ObjectUtils.isEmpty(valuesToReduce)) {
-            return 0D;
+            try {
+                return Double.parseDouble(nodeValueToProcess.getValue());
+            } catch (NumberFormatException e) {
+                return 0.0;
+            }
         }
         if ("sum".equalsIgnoreCase(operator)) {
             return valuesToReduce.stream().reduce(Double::sum).get();
@@ -96,16 +102,19 @@ public class NodeService {
             }
             return valuesToReduce.stream().reduce((total, current) -> total * current).get();
         }
-        return 0.0;
+        return Double.parseDouble(nodeValueToProcess.getValue());
     }
 
     public List<Double> getLatestDoublesToReduce(List<NodeValueSpace> spaces) {
-        return spaces
-                .stream()
-                .map(NodeValueSpace::getLatestValue)
-                .filter(nodeValue -> Objects.nonNull(nodeValue.getDoubleValue()))
-                .map(NodeValue::getDoubleValue)
-                .collect(Collectors.toList());
+        if (Objects.nonNull(spaces)) {
+            return spaces
+                    .stream()
+                    .map(NodeValueSpace::getLatestValue)
+                    .filter(nodeValue -> Objects.nonNull(nodeValue.getDoubleValue()))
+                    .map(NodeValue::getDoubleValue)
+                    .collect(Collectors.toList());
+        }
+        return List.of();
     }
 
     public void notifyDependentNodesOfChange(NodeValueSpace space) {
@@ -113,7 +122,7 @@ public class NodeService {
         List<NodeValueSpace> listeners = new ArrayList<>(space.getListeners());
         while (counter < space.getListeners().size()) {
             NodeValueSpace currentSpace = listeners.get(counter);
-            this.addValueToNode(currentSpace.getNodeSpaceId(), new NodeValueDTO(null, null, null,
+            addValueToNode(currentSpace.getNodeSpaceId(), new NodeValueDTO(null, null, null,
                     currentSpace.getStrategy(), currentSpace.getPower(),
                     currentSpace.getWatchedSpaces().stream().map(NodeValueSpace::getNodeSpaceId).collect(Collectors.toList())));
             counter++;
@@ -126,10 +135,10 @@ public class NodeService {
             throw new IllegalArgumentException("The node value space for nodeId: " + nodeId + " doesn't exist.");
         }
         value.setNodeValueSpace(space);
-        NodeValue savedValue = nodeValueDao.saveAndFlush(new NodeValue(this.processValue(value)));
+        NodeValue savedValue = nodeValueDao.saveAndFlush(new NodeValue(processValue(value)));
         log.info("Saved new value: " + savedValue.getNodeValueId() + " to nodeSpace: " + space.getNodeSpaceId());
         space.addValue(savedValue);
-        this.notifyDependentNodesOfChange(space);
+        notifyDependentNodesOfChange(space);
         try {
             this.saveNode(space);
             log.info("saved nodeSpace: " + space.getNodeSpaceId() + " and notified all dependents of change.");
@@ -165,9 +174,15 @@ public class NodeService {
 
     public Set<NodeValueSpace> getAllNodesByWorldId(Long worldId) {
         World existingWorld = worldService.findById(worldId);
-        if(Objects.nonNull(existingWorld)){
+        if (Objects.nonNull(existingWorld)) {
             return existingWorld.getNodes();
         }
         return Set.of();
     }
+
+    public List<NodeValue> getValueHistoryForNode(Long nodeId, Integer limit) {
+        log.info("Getting the most recent " + limit + " nodeValues for nodeValueSpace: " + nodeId);
+        return nodeValueDao.getValueHistoryForNode(nodeId, limit);
+    }
 }
+

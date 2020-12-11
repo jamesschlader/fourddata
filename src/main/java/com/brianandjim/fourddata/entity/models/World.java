@@ -64,8 +64,10 @@ public class World {
     @Override
     public String toString() {
         StringBuilder nodeString = new StringBuilder();
-        this.nodes.forEach(node -> nodeString.append(node.toString() + ", "));
-        nodeString.deleteCharAt(nodeString.lastIndexOf(","));
+        if (nodes.size() > 0) {
+            this.nodes.forEach(node -> nodeString.append(node.toString() + ", "));
+            nodeString.deleteCharAt(nodeString.lastIndexOf(", "));
+        }
         return "worldId: " + this.worldId + ", name: " + this.name + ", description: " + this.description
                 + ", nodes: [ " + nodeString.toString() + " ]";
     }

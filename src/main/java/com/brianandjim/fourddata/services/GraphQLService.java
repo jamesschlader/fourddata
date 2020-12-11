@@ -236,6 +236,12 @@ public class GraphQLService {
         return null;
     }
 
+    @GraphQLQuery(name = "getValueHistoryForNode")
+    public List<NodeValue> getValueHistoryForNode(@GraphQLArgument(name = "nodeId") Long nodeId,
+                                                  @GraphQLArgument(name = "limit") Integer limit){
+        return nodeService.getValueHistoryForNode(nodeId, limit);
+    }
+
     @GraphQLMutation(name = "updateNode", description = "Updates an already existing node.")
     public NodeValueSpace updateNode(@GraphQLArgument(name = "node") NodeValueSpaceDTO nodeValueSpaceDTO) {
         NodeValueSpace existingNode = this.getOneNodeById(nodeValueSpaceDTO.getNodeSpaceId());
